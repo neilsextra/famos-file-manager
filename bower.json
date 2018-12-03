@@ -1,0 +1,18 @@
+{
+  "name": "famos-file-manager",
+  "homepage": "https://github.com/thesourorange/famos-file-manager",
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery":"latest",
+    "swiper": "^4.4.1"
+  }
+}
