@@ -18,13 +18,13 @@ ENV UWSGI_INI uwsgi.ini
 # app's folder. Note that when multiple apps share a folder, you should create subfolders
 # with the same name as the app underneath "static" so there aren't any collisions
 # when all those static files are collected together.
-ENV STATIC_URL /hello_app/static
+ENV STATIC_URL /famos_file_manager/static
 
 # Set the folder where uwsgi looks for the app
-WORKDIR /hello_app
+WORKDIR /famos_file_manager
 
 # Copy the app contents to the image
-COPY . /hello_app
+COPY . /famos_file_manager
 
 # If you have additional requirements beyond Flask (which is included in the
 # base image), generate a requirements.txt file with pip freeze and uncomment
