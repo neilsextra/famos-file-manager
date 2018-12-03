@@ -11,6 +11,7 @@ startup:app in the Gunicorn command.
 
 from os import environ
 from famos_file_manager.webapp import app
+print('Starting', __name__)
 
 if __name__ == '__main__':
 
@@ -18,7 +19,8 @@ if __name__ == '__main__':
 
     try:
 
-        PORT = int(environ.get('SERVER_PORT', '5555'))
+        PORT = int(environ.get('PORT', '5555'))
+        print('PORT', PORT)
 
     except ValueError:
 
