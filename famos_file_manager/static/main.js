@@ -74,7 +74,7 @@ $(document).ready(function() {
   createSwipperControl();
 
   var dropzone = $('#droparea');
-  
+
   dropzone.on('dragover', function() {
     dropzone.addClass('hover');
     return false;
@@ -117,11 +117,13 @@ $(document).ready(function() {
   });  
 
   function processFiles(files) {
-      
+    $('#waitDialog').css('display', 'inline-block');
+
     try {         
-   
+      var formData = new FormData();
+  
       for (var iFile = 0; iFile < files.length; iFile++) {
-          formData.append('file', files[iFile]);
+        formData.append('file_' + iFile, files[iFile]);
       }
 
       $.ajax({
@@ -155,8 +157,7 @@ $(document).ready(function() {
 
               },
               error: function (err) {
-                  $('#uploadWait').css('display', 'none');  
-                  $('#placeHolder').css('display', 'inline-block');  
+                  $('#waitDialog').css('display', 'none');  
                   
                   alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
 
@@ -169,7 +170,7 @@ $(document).ready(function() {
                   });
               },
               success: function (result) {  
-                  var parameters = {filter:'all'};
+                $('#waitDialog').css('display', 'none');  
 
               }
           });
