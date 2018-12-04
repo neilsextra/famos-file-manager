@@ -107,4 +107,4 @@ venv.bak/
 settings.json
 
 # bower
-/bower_components
+bower_components

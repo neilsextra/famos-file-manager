@@ -12,6 +12,7 @@ startup:app in the Gunicorn command.
 from os import environ
 from famos_file_manager.webapp import app
 from flask_bower import Bower
+
 print('Starting', __name__)
 
 if __name__ == '__main__':
@@ -27,5 +28,6 @@ if __name__ == '__main__':
 
         PORT = 5555
     
-    Bower(app)
+    Bower(app)  
+    print('Added Bower', __name__)
     app.run(HOST, PORT)

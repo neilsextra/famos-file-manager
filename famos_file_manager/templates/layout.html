@@ -3,23 +3,30 @@
     <head>
         <meta charset="utf-8" />
         <title>{% block title %}{% endblock %}</title>
+        <link rel="icon" type="text/css" href="{{ url_for('static', filename='favicon.ico') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='site.css') }}"  />
+        <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='swiper', filename='dist/css/swiper.min.css') }}"  />
+        
     </head>
 
     <body>
-        <div class="navbar">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Home</a>
-            <a href="{{ url_for('about') }}" class="navbar-item">About</a>
-            <a href="{{ url_for('contact') }}" class="navbar-item">Contact</a>
+        <div class='main' style="width: 12%; height:12%; overflow:hidden;">
+            <div style="position: absolute; overflow:hidden; top:0px; bottom:0px; left:0px; right:0px; background-size: cover;  background-repeat: no-repeat;"/>
+                <img src="{{ url_for('static', filename='app-icon.png') }}" style="position:absolute; top:4px; left:5px;" alt="App"/>
+                <div id='toolbar'>
+                    <div id='layout'> 
+                        <span class='tool'>
+                            <button class='button' id="refresh" style="position:absolute; right:20px; margin-top:12px; ">
+                                <img src="{{ url_for('static', filename='refresh-button.svg') }}" style="padding-top:8px; width:17px; height:17px; text-align:center;" alt="Refresh"/>
+                            </button>
+                        </span>
+                    </div>           
+                </div>
+                <div>
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
         </div>
-
-        <div class="body-content">
-            {% block content %}
-            {% endblock %}
-            <hr/>
-            <footer>
-                <p>&copy; 2018</p>
-            </footer>
-        </div>
-    </body>
+     </body>
 </html>
