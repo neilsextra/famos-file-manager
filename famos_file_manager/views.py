@@ -9,7 +9,10 @@ import sys
 import re
 import argparse
 import csv
+import io
 from struct import unpack, pack
+from azure.storage.blob import BlockBlobService
+import famos_file_manager.configuration as config
 
 class FamosParser:
   def __init__(__self):
@@ -160,23 +163,73 @@ class FamosParser:
   def getCount(__self):
      return __self.__count
 
+def storeFiles(csvFile, files):
+   return
+
 @app.route("/")
 def home():
     return render_template("main.html")
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    print('Uploading Files')
+    app.logger.info('Upload request received')
     uploadedFiles = request.files
     print(uploadedFiles)
+    
+    matrix = []
+    titles = []
+    types = []
+    sizes = []
+
     for uploadFile in uploadedFiles:
-        print(uploadFile)
+        app.logger.info('Processing', uploadFile)
  
         file = request.files.get(uploadFile)
+        print(file)
+        
         parser = FamosParser()
         parser.parse(file)
 
         data = parser.getData()
-        print(data)
 
-    return "processing file..."
+        if len(data) > 0:
+            sizes.append(len(data))
+            matrix.append(data)
+            types.append(parser.getType())
+            titles.append(parser.getTitle())
+        
+        parser.summary()
+
+    minSize = min(sizes)
+    maxSize = max(sizes)
+
+    sampleSize = int(maxSize/minSize)
+    csvfile = io.StringIO()
+    famosWriter = csv.writer(csvfile, delimiter=',',
+                            quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+    famosWriter.writerow(titles)
+
+    iRow = 0
+    iSample = 0
+
+    while iRow < minSize:
+        iColumn = 0
+        row = []
+        while iColumn < len(matrix): 
+            if (sizes[iColumn] == minSize):
+                row.append(matrix[iColumn][iRow])
+            else:
+                row.append(matrix[iColumn][iSample])
+    
+            iColumn += 1
+
+        iRow += 1
+        iSample = iSample + sampleSize if (iSample + sampleSize) < minSize else iRow
+
+        famosWriter.writerow(row)
+
+    contents = csvfile.getvalue()
+    csvfile.close()
+
+    return contents

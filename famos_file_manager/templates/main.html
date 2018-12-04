@@ -4,9 +4,22 @@ Main
 {% endblock %}
 {% block content %}
 <div style='position:absolute; top:90px; left:10px; right:10px; bottom:260px; z-index: 1; border:3px solid #0174DF; overflow:auto; background-color:rgba(255, 255, 255, 0.3);'>
-    <div id='display' style="width:100%">
-    </div>
+    <div id='display' style="width:100%; display:none; overflow: hidden;">
+        <div id='tab' class='tab'>
+            <button class='tablinks' id='tab1' onclick="showTab(event, 'structureFrame', 'tab1')" value="Structure">Route</button>
+            <button class='tablinks' id='tab2' onclick="showTab(event, 'speedFrame', 'tab2')" value="Speed">Speed</button>
+        </div>
+        <div class='tabcontent' id='structureFrame' style="left:10px; right:10px; top:60px; bottom:10px; overflow:auto; background-color:black; opacity:0.9; position:absolute;">
+            <div id='map' style="position:absolute; left:0px; right:0px; top:0px; bottom:0px;"></div>
+        </div>
+        <div class='tabcontent' id='speedFrame' style="left:10px; right:10px; top:60px; bottom:10px; background-color:white; opacity:0.9; position:absolute;">
+            <div id='speed' style="position:absolute; left:0px; right:0px; top:0px; bottom:0px; overflow:auto;">
+                <canvas id='speedChart' style="position:absolute; left:0px; right:0px; top:0px; bottom:0px;"></canvas>
+            </div>
+         </div>
+    </div>    
 </div>
+
 <div style="position:absolute; left:10px; right:0px; bottom:10px;">
     <div style='position:absolute; left:0px; bottom:8px'>
         <div id='droparea' style="left:10px; width:240px; height:230px;">
