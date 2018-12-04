@@ -11,19 +11,23 @@ Main
     <div style='position:absolute; left:0px; bottom:8px'>
         <div id='droparea' style="left:10px; width:240px; height:230px;">
             <div id='dropareainner'>
-                <p/>
-                <p/>
-                <img src='{{ url_for('static', filename='download.svg') }}' style='width:78px; height:78px'/>
-                <p/>
+                <p></p>
+                <p></p>
+                <img src="{{ url_for('static', filename='download.svg') }}" style='width:78px; height:78px'/>
+                <p></p>
                 <p id='dropfiletext'> Drop (Famos log files) here</p>
                 <p>or</p>
-                <p/>
+                <p></p>
                     <input class='uploadbtn' id='uploadbtn' type='button' value="Select Directory"/> 
-            <input id='upload' type='file'/>
-<div id='navigator' style='position:absolute; left:260px; bottom:6px; height:218px; right:8px; margin:2px; border:3px solid #0174DF; padding:5px; background-color:rgba(255, 255, 255, 0.3);'>
+                <input id='upload' type='file' accept='*.raw' allowdirs multiple/>
+            </div>
+        </div>
+    </div>        
+</div>
+<div id='navigator' style='position:absolute; left:260px; right:10px; bottom:14px; height:218px; margin:2px; border:2px solid #0174DF; padding:5px;'>
     <div class='swiper-container' id='swiper-container' style='right:0px; padding-bottom:40px;'>
         <div id='swiper-wrapper' class='swiper-wrapper' style='height:160px; width:160px;'></div>
-        <div id='swiper-pagination' style='margin-top:0px'></div>
+        <div id='swiper-pagination' class='swiper-pagination' style='margin-top:0px'></div>
      </div>
 </div>
 

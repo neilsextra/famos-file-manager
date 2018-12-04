@@ -266,18 +266,18 @@ input.hide {
   }
   
 #toolbar .layout {
-top: 50%;
-position: relative;
-transform: translateY(-50%);
+    top: 50%;
+    position: relative;
+    transform: translateY(-50%);
 }
 
 #toolbar .tool {
-padding-right: 5px;
-padding-bottom: 10px;
+    padding-right: 5px;
+    padding-bottom: 10px;
 }
 
 #toolbar .tool:last-child {
-padding-right: 0;
+    padding-right: 0;
 }
 
 #toolbar .button {

@@ -6,12 +6,14 @@
         <link rel="icon" type="text/css" href="{{ url_for('static', filename='favicon.ico') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='site.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='swiper', filename='dist/css/swiper.min.css') }}"  />
-        
+        <script type="text/javascript" src="{{ bower_url_for(component='jquery', filename='dist/jquery.min.js') }}"></script>     
+        <script type="text/javascript" src="{{ bower_url_for(component='swiper', filename='dist/js/swiper.min.js') }}"></script>     
+        <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>     
     </head>
 
     <body>
         <div class='main' style="width: 12%; height:12%; overflow:hidden;">
-            <div style="position: absolute; overflow:hidden; top:0px; bottom:0px; left:0px; right:0px; background-size: cover;  background-repeat: no-repeat;"/>
+            <div style="position: absolute; overflow:hidden; top:0px; bottom:0px; left:0px; right:0px; background: url('{{ url_for('static', filename='ballon-blue.jpg') }}'); background-size: cover;  background-repeat: no-repeat;">
                 <img src="{{ url_for('static', filename='app-icon.png') }}" style="position:absolute; top:4px; left:5px;" alt="App"/>
                 <div id='toolbar'>
                     <div id='layout'> 
@@ -29,4 +31,3 @@
             </div>
         </div>
      </body>
-</html>

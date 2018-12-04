@@ -22,12 +22,12 @@ if __name__ == '__main__':
     try:
 
         PORT = int(environ.get('PORT', '5555'))
-        print('PORT', PORT)
+        print('Starting on PORT:', PORT)
 
     except ValueError:
 
         PORT = 5555
     
     Bower(app)  
-    print('Added Bower', __name__)
+    print('Added Bower Support', __name__)
     app.run(HOST, PORT)
