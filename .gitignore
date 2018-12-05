@@ -108,8 +108,4 @@ keys.json
 
 # bower
 bower_components
-famos_file_manager/configuration.py
-famos_file_manager/keys.py
-famos_file_manager/keys.py
-famos_file_manager/keys.py
 famos_file_manager/keys.py
