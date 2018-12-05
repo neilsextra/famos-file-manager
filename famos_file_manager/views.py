@@ -10,6 +10,9 @@ import re
 import argparse
 import csv
 import io
+import re
+import zlib
+import json
 from struct import unpack, pack
 from azure.storage.blob import BlockBlobService, PublicAccess
 
@@ -165,11 +168,12 @@ class FamosParser:
   def getBuffer(__self):
      return __self.__buffer
 
-def storeFiles(csvFile, fileNames, buffers):
+def storeFiles(content, fileNames, start_time, summary, buffers):
    account_key = None
    account_name = None
    vehicle_name = None
    container_name = None
+   save_files = 'true'
  
    try:
       import famos_file_manager.configuration as config
@@ -177,6 +181,7 @@ def storeFiles(csvFile, fileNames, buffers):
       account_name = config.ACCOUNT_NAME
       container_name = config.CONTAINER_NAME
       vehicle_name = config.VEHICLE_NAME
+      save_files = config.SAVE_FILES
 
    except ImportError:
       pass
@@ -197,8 +202,16 @@ def storeFiles(csvFile, fileNames, buffers):
 
    block_blob_service.set_container_acl(container_name, public_access=PublicAccess.Container)
 
-   for iBuffer, buffer in enumerate(buffers):    
-      print(fileNames[iBuffer])
+   if save_files == 'true':
+      for iBuffer, buffer in enumerate(buffers):    
+         print(fileNames[iBuffer])
+         block_blob_service.create_blob_from_stream(container_name, vehicle_name + '/' + fileNames[iBuffer] + '.gz', io.BytesIO(zlib.compress(buffer)))
+   
+   block_blob_service.create_blob_from_stream(container_name, vehicle_name + '/' + start_time + '/output.csv.gz',
+                                              io.BytesIO(zlib.compress(content.encode())))
+   
+   block_blob_service.create_blob_from_stream(container_name, vehicle_name + '/' + start_time + '/summary.json',
+                                              io.BytesIO(summary.encode()))
 
    return
 
@@ -210,7 +223,6 @@ def home():
 def upload():
     app.logger.info('Upload request received')
     uploadedFiles = request.files
-    print(uploadedFiles)
     
     matrix = []
     titles = []
@@ -218,6 +230,10 @@ def upload():
     sizes = []
     buffers = []
     fileNames = []
+
+    start_time = 0 
+    stop_time = 0 
+
 
     for uploadFile in uploadedFiles:
         app.logger.info('Processing', uploadFile)
@@ -237,9 +253,13 @@ def upload():
             titles.append(parser.getTitle())
             buffers.append(parser.getBuffer())
             fileNames.append(uploadFile)
-        
-        parser.summary()
+            print(parser.getType(), parser.getTitle())
 
+            if (parser.getType() == '52'):
+               print('Start Time:', re.sub(r'\..*', '', data[0]))
+               start_time = re.sub(r'\..*', '', data[0])
+               stop_time = re.sub(r'\..*', '', data[len(data) - 1])
+        
     minSize = min(sizes)
     maxSize = max(sizes)
 
@@ -270,8 +290,8 @@ def upload():
         famosWriter.writerow(row)
 
     contents = csvfile.getvalue()
-
-    storeFiles(contents, fileNames, buffers)
+    summary = json.dumps({"start": start_time, "stop": stop_time}, sort_keys=True)
+    storeFiles(contents, fileNames, start_time, summary, buffers)
 
     csvfile.close()
 
