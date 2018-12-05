@@ -93,12 +93,18 @@ outline: 0;
 } 
 
 .loader {
-    border: 16px solid #f3f3f3; /* Light grey */
-    border-top: 16px solid #3498db; /* Blue */
+    border: 3px solid #f3f3f3; /* Light grey */
+    border-top: 3px solid rgb(0, 65, 119); /* Blue */
     border-radius: 50%;
-    width: 120px;
-    height: 120px;
+    width: 80px;
+    height: 80px;
+    position: absolute;
+    left: 50%;
+    top: 65%;
     animation: spin 2s linear infinite;
+    transform: translate3d(-50%, -50%, 0);
+    transform-origin: center;
+    will-change: transform;
 }
 
 @keyframes spin {

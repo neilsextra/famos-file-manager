@@ -122,8 +122,7 @@ function getLatLngCenter(latLngInDegr) {
   */
  function clearCanvas(parentID, canvasID) {
     $('#' + canvasID).remove(); 
-    $(parentID).append('<canvas id= '+ canvasID + 
-                       ' style="position:absolute; left:0px; right:0px; top:0px; bottom:px;"/>');
+    $(parentID).append('<canvas id= "'+ canvasID + '" width="400" height="130" style="position:absolute; left:0px; right:0px; top:0px; bottom:0px;" />');
 
  }
 
@@ -349,10 +348,12 @@ function showCharts(columns, rows) {
       }
 
   }
+   
+    clearCanvas('#speedFrame', 'speedChart');
+    
+    var ctx = document.getElementById("speedChart").getContext('2d');
 
-  clearCanvas('#speed', 'speedChart');
-
-  new Chart(document.getElementById('speedChart'), {
+    new Chart(ctx, {
       type: 'line',
       data: {
           labels: labels,
@@ -369,8 +370,8 @@ function showCharts(columns, rows) {
       }
     }
   }
-  });  
-
+  }); 
+   
 }
 
 /**
@@ -534,7 +535,7 @@ $(document).ready(function() {
       var formData = new FormData();
   
       for (var iFile = 0; iFile < files.length; iFile++) {
-        formData.append('file_' + iFile, files[iFile]);
+        formData.append(files[iFile].name, files[iFile]);
       }
 
       $.ajax({

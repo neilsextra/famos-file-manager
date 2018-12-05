@@ -1,1 +1,3 @@
-KEY = 'ueeY47IjZthiit45wMvVzecnqnkxJnoz0EPfxLHA5gJNGBKRuF7RsBOPHrQ2Ou2QBFNbj+RqP+k89srwPssDaQ=='
+ACCOUNT_NAME = 'tsoblob1'
+CONTAINER_NAME = 'famos'
+VEHICLE_NAME = 'hawkei001'
