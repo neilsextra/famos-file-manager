@@ -13,6 +13,9 @@ import io
 import re
 import zlib
 import json
+import threading
+from os import environ
+
 from struct import unpack, pack
 from azure.storage.blob import BlockBlobService, PublicAccess
 
@@ -168,12 +171,13 @@ class FamosParser:
   def getBuffer(__self):
      return __self.__buffer
 
-def storeFiles(content, fileNames, start_time, summary, buffers):
+def getConfiguration():    
    account_key = None
    account_name = None
    vehicle_name = None
    container_name = None
    save_files = 'true'
+   socket_timeout = None
  
    try:
       import famos_file_manager.configuration as config
@@ -182,6 +186,7 @@ def storeFiles(content, fileNames, start_time, summary, buffers):
       container_name = config.CONTAINER_NAME
       vehicle_name = config.VEHICLE_NAME
       save_files = config.SAVE_FILES
+      socket_timeout = config.SOCKET_TIMEOUT
 
    except ImportError:
       pass
@@ -193,31 +198,79 @@ def storeFiles(content, fileNames, start_time, summary, buffers):
    except ImportError:
       pass
 
-   print('Account Name: ', account_name)
-   print('Container Name: ', container_name)
+   return {
+      "account_key": account_key,
+      "account_name": account_name,
+      'container_name': container_name,
+      'vehicle_name': vehicle_name,
+      'save_files': save_files,
+      'socket_timeout': socket_timeout
+   }   
 
-   block_blob_service = BlockBlobService(account_name=account_name, account_key=account_key)
+def storeFiles(content, fileNames, start_time, summary, buffers):
+   configuration = getConfiguration()
 
-   block_blob_service.create_container(container_name) 
+   print('Account Name: ', configuration['account_name'])
+   print('Container Name: ', configuration['container_name'])
 
-   block_blob_service.set_container_acl(container_name, public_access=PublicAccess.Container)
+   block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
+                                         account_key=configuration['account_key'], 
+                                         socket_timeout=configuration['socket_timeout'])
 
-   if save_files == 'true':
+   block_blob_service.create_container(configuration['container_name']) 
+
+   block_blob_service.set_container_acl(configuration['container_name'], public_access=PublicAccess.Container)
+
+   if configuration['save_files'] == 'true':
       for iBuffer, buffer in enumerate(buffers):    
          print(fileNames[iBuffer])
-         block_blob_service.create_blob_from_stream(container_name, vehicle_name + '/' + fileNames[iBuffer] + '.gz', io.BytesIO(zlib.compress(buffer)))
+         block_blob_service.create_blob_from_stream(configuration['container_name'], 
+                                                    configuration['vehicle_name'] + '/' + start_time + '/' +
+                                                    fileNames[iBuffer] + '.gz', 
+                                                    io.BytesIO(zlib.compress(buffer)))
    
-   block_blob_service.create_blob_from_stream(container_name, vehicle_name + '/' + start_time + '/output.csv.gz',
+   block_blob_service.create_blob_from_stream(configuration['container_name'], configuration['vehicle_name'] + '/' + start_time + '/output.csv.gz',
                                               io.BytesIO(zlib.compress(content.encode())))
    
-   block_blob_service.create_blob_from_stream(container_name, vehicle_name + '/' + start_time + '/summary.json',
+   block_blob_service.create_blob_from_stream(configuration['container_name'],  configuration['vehicle_name'] + '/' + start_time + '/summary.json',
                                               io.BytesIO(summary.encode()))
 
+   print('Upload Completed')
+   app.logger.info('Upload Completed')
    return
 
 @app.route("/")
 def home():
     return render_template("main.html")
+
+@app.route("/list", methods=["GET"])
+def list():
+   configuration = getConfiguration()
+
+   block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
+                                         account_key=configuration['account_key'], 
+                                         socket_timeout=configuration['socket_timeout'])
+
+   block_blob_service.create_container(configuration['container_name']) 
+
+   block_blob_service.set_container_acl(configuration['container_name'], public_access=PublicAccess.Container)
+   output = []
+
+   try:
+      blobs = block_blob_service.list_blobs(configuration['container_name'])
+   except:
+       return json.dumps(output)
+
+   for blob in blobs:
+      if (re.match("(.*)\/(.*)\/(summary\.json)$", blob.name,  re.DOTALL)):
+          data = re.search("(.*)\/(.*)\/(summary\.json)$", blob.name, re.DOTALL)
+          output.append({
+             "summary_file": blob.name,
+             "vehicle": data.group(1),
+             "start_time": data.group(2)
+          })
+    
+   return json.dumps(output, sort_keys=True)
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -291,7 +344,10 @@ def upload():
 
     contents = csvfile.getvalue()
     summary = json.dumps({"start": start_time, "stop": stop_time}, sort_keys=True)
-    storeFiles(contents, fileNames, start_time, summary, buffers)
+    
+    thread = threading.Thread(name='storefiles', target=storeFiles, args=(contents, fileNames, start_time, summary, buffers))
+    thread.setDaemon(True)
+    thread.start()
 
     csvfile.close()
 

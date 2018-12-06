@@ -13,6 +13,7 @@ var csvFile = null;
 var currentLatLng = null;
 var imageVehicleSide = null;
 var imageVehicleFront= null;
+var swiper = null;
 
 /**
  * Distance between to points
@@ -122,7 +123,8 @@ function getLatLngCenter(latLngInDegr) {
   */
  function clearCanvas(parentID, canvasID) {
     $('#' + canvasID).remove(); 
-    $(parentID).append('<canvas id= "'+ canvasID + '" width="400" height="130" style="position:absolute; left:0px; right:0px; top:0px; bottom:0px;" />');
+    $(parentID).append('<canvas id= "'+ canvasID + 
+            '" width="400" height="130" style="position:absolute; left:0px; right:0px; top:0px; bottom:0px;" />');
 
  }
 
@@ -439,6 +441,24 @@ function createSwipperControl() {
 
 }
 
+function generateSwiperEntry(html, name, startTime) {
+  
+    var result = html + 
+        "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255,255,255, 0.30);' onclick='showMission(" +
+        "\"" + name + "\",\"" + startTime + "\");'> " + 
+            "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
+            "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
+            "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(startTime) * 1000)) + "</label></td>" +  
+            "</tr>" + 
+            "</table>" +
+            "</div>" +
+            "<div style='position:absolute; left:3px; bottom:10px; right:3px;'>" + 
+                " <label style='color:black;font-family: monospace; font-size: 14px; width:100%; " + 
+            " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
+        name + "</label></div></div>";
+    return result;
+
+}
 function display(columns, rows) {
 
   showMap(columns, rows);
@@ -481,9 +501,54 @@ function displayResults(results) {
 
 }
 
+function setupSwiper() {
+    var parameters = {};
+
+    $.get('/list', parameters, function(data) {
+       var html = "";
+        var entries = JSON.parse(data)
+        for (entry in entries) {
+            html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);       
+        }
+
+        $('#swiper-wrapper').html(html);
+    
+        $('#swiper-container').css('visibility', 'visible');
+    
+        swiper = createSwipperControl();
+    
+        $('#swiper-container').css('visibility', 'visible');
+
+    });
+
+}
+
+function refreshView(callback) {
+    $.get('/list', {}, function(data) {
+            var parameters = {};
+
+        $.get('/list', parameters, function(data) {
+            var html = "";
+            var entries = JSON.parse(data)
+            for (entry in entries) {
+                html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);
+            }       
+        
+        });
+        
+        $('#swiper-wrapper').html(html);
+      
+        swiper.update();
+
+        callback();
+        
+    });
+
+}
+
 $(document).ready(function() {
 
-  createSwipperControl();
+  setupSwiper();
 
   var dropzone = $('#droparea');
 
