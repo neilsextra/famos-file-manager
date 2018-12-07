@@ -424,6 +424,10 @@ function createSwipperControl() {
       2000: {
         slidesPerView: 9,
         spaceBetween: 10
+      },   
+      2200: {
+       slidesPerView: 10,
+        spaceBetween: 11
       }
     },
     pagination: {
@@ -440,25 +444,33 @@ function createSwipperControl() {
   return swiper;
 
 }
+function generateSlide(name, startTime) {
+    var slide = 
+    "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255,255,255, 0.30);' onclick='showMission(" +
+    "\"" + name + "\",\"" + startTime + "\");'> " + 
+        "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
+        "<div class='play'>" + 
+        "<img src='" + playImage + "' style='width:32; height:32px; margin-top:80px;'/></div>" +
+        "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
+        "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(startTime) * 1000)) + "</label></td>" +  
+        "</tr>" + 
+        "</table>" +
+        "</div>" +
+        "<div style='position:absolute; left:3px; bottom:10px; right:3px;'>" + 
+            " <label style='color:black;font-family: monospace; font-size: 14px; width:100%; " + 
+        " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
+    name + "</label></div></div>";
+
+    return slide;
+
+}
 
 function generateSwiperEntry(html, name, startTime) {
   
-    var result = html + 
-        "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255,255,255, 0.30);' onclick='showMission(" +
-        "\"" + name + "\",\"" + startTime + "\");'> " + 
-            "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
-            "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
-            "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(startTime) * 1000)) + "</label></td>" +  
-            "</tr>" + 
-            "</table>" +
-            "</div>" +
-            "<div style='position:absolute; left:3px; bottom:10px; right:3px;'>" + 
-                " <label style='color:black;font-family: monospace; font-size: 14px; width:100%; " + 
-            " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
-        name + "</label></div></div>";
-    return result;
+    return html + generateSlide(name, startTime);
 
 }
+
 function display(columns, rows) {
 
   showMap(columns, rows);
@@ -480,7 +492,7 @@ function display(columns, rows) {
 
 }
 
-function displayResults(results) {
+function displayResults(results, callback) {
   var csv = Papa.parse(results);
 
   var lines = csv.data;
@@ -498,6 +510,8 @@ function displayResults(results) {
   }
 
   display(columns, rows);
+
+  callback(columns, rows);
 
 }
 
@@ -524,24 +538,43 @@ function setupSwiper() {
 }
 
 function refreshView(callback) {
-    $.get('/list', {}, function(data) {
-            var parameters = {};
+    var parameters = {};
 
-        $.get('/list', parameters, function(data) {
-            var html = "";
-            var entries = JSON.parse(data)
-            for (entry in entries) {
-                html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);
-            }       
+    $.get('/list', parameters, function(data) {
+        var html = "";
+        var entries = JSON.parse(data)
         
-        });
-        
+        for (entry in entries) {
+            html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);
+        }       
+    
         $('#swiper-wrapper').html(html);
-      
+        
         swiper.update();
 
         callback();
         
+    });
+
+}
+
+function showMission(name, timestamp) {
+    var parameters = {
+        name: name,
+        timestamp: timestamp
+
+    };
+
+    $('#waitDialog').css('display', 'inline-block');
+
+    $.get('/retrieve', parameters, function(data) {
+
+        displayResults(data, function(columns, rows) {
+
+        });
+
+        $('#waitDialog').css('display', 'none');
+    
     });
 
 }
@@ -642,8 +675,13 @@ $(document).ready(function() {
                   });
               },
               success: function (result) {  
-                
-                displayResults(result);
+   
+                displayResults(result, function(columns, rows) {
+                    var slide = generateSlide('hawkei001', Math.trunc(rows[0][12]));
+ 
+                    swiper.prependSlide([slide]);
+ 
+                });
 
                 $('#waitDialog').css('display', 'none');  
 

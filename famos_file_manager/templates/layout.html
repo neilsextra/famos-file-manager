@@ -9,6 +9,13 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='tab.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='swiper', filename='dist/css/swiper.min.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='leaflet', filename='dist/leaflet.css') }}"  />
+        
+        <script>
+        
+            var playImage = "{{ url_for('static', filename='play.svg') }}";
+        
+        </script>
+
         <script type="text/javascript" src="{{ bower_url_for(component='jquery', filename='dist/jquery.min.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='swiper', filename='dist/js/swiper.min.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='leaflet', filename='dist/leaflet.js') }}"></script>     
@@ -23,7 +30,11 @@
             <div style="position: absolute; overflow:hidden; top:0px; bottom:0px; left:0px; right:0px; background: url('{{ url_for('static', filename='ballon-blue.jpg') }}'); background-size: cover;  background-repeat: no-repeat;">
                 <img src="{{ url_for('static', filename='app-icon.png') }}" style="position:absolute; top:4px; left:5px;" alt="App"/>
                 <div id='toolbar'>
-                    <div id='layout'> 
+                        <div style="position:absolute; top:16px; left:84px; font-weight:bold; font-size: 32px;  color:rgba(255,255,255,0.9)"><label>Famos Log: Upload Manager</label></div>
+                        <div style="position:absolute; top:16px; right:100px; height:30px; padding-left:4px; padding-top:6px; font-weight:medium; font-size: 16px;  width:400px; background-color: rgba(255,255,255, 0.30); color:black; border:2px solid #0174DF; ">
+                            <label id="vehicle">/famos/hawkei</label>
+                        </div>
+                        <div id='layout'> 
                         <span class='tool'>
                             <button class='button' id="refresh" style="position:absolute; right:20px; margin-top:12px; ">
                                 <img src="{{ url_for('static', filename='refresh-button.svg') }}" style="padding-top:8px; width:17px; height:17px; text-align:center;" alt="Refresh"/>

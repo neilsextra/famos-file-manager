@@ -272,6 +272,30 @@ def list():
     
    return json.dumps(output, sort_keys=True)
 
+
+@app.route("/retrieve", methods=["GET"])
+def retrieve():
+   print('In retrieve')
+   timestamp = request.args.get('timestamp')
+   name = request.args.get('name')
+
+   print(timestamp, name)
+
+   configuration = getConfiguration()
+
+   block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
+                                         account_key=configuration['account_key'], 
+                                         socket_timeout=configuration['socket_timeout'])
+
+   stream = io.BytesIO()
+
+   block_blob_service.get_blob_to_stream(container_name=configuration['container_name'], 
+                                   blob_name=name + '/' + timestamp + '/output.csv.gz', stream=stream)
+
+   content = zlib.decompress(stream.getbuffer())
+
+   return content
+
 @app.route("/upload", methods=["POST"])
 def upload():
     app.logger.info('Upload request received')
@@ -306,8 +330,7 @@ def upload():
             titles.append(parser.getTitle())
             buffers.append(parser.getBuffer())
             fileNames.append(uploadFile)
-            print(parser.getType(), parser.getTitle())
-
+ 
             if (parser.getType() == '52'):
                print('Start Time:', re.sub(r'\..*', '', data[0]))
                start_time = re.sub(r'\..*', '', data[0])

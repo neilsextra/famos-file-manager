@@ -265,7 +265,7 @@ input.hide {
 #toolbar {
     height: 64px;
     text-align: left;
-    background: -webkit-linear-gradient(top, rgba(0, 122, 204, 0.6) 0%, rgba(0, 122, 204, 0.6) 100%);
+    background: -webkit-linear-gradient(top, rgba(31, 154, 236, 0.925) 0%, rgba(0, 122, 204, 0.329) 100%);
     padding: 5px;
     width:100%;
     overflow: hidden;
