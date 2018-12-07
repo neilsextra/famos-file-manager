@@ -13,6 +13,9 @@
         <script>
         
             var playImage = "{{ url_for('static', filename='play.svg') }}";
+
+            var startMarker = "{{ url_for('static', filename='start-marker.png') }}";            
+            var stopMarker = "{{ url_for('static', filename='stop-marker.png') }}";
         
         </script>
 
@@ -37,7 +40,7 @@
                         <div id='layout'> 
                         <span class='tool'>
                             <button class='button' id="refresh" style="position:absolute; right:20px; margin-top:12px; ">
-                                <img src="{{ url_for('static', filename='refresh-button.svg') }}" style="padding-top:8px; width:17px; height:17px; text-align:center;" alt="Refresh"/>
+                                <img src="{{ url_for('static', filename='refresh.svg') }}" style="padding-top:6px; margin-left:-4px; width:24px; height:24px; text-align:center;" alt="Refresh"/>
                             </button>
                         </span>
                     </div>           

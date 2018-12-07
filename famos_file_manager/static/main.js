@@ -243,14 +243,14 @@ function showMap(columns, rows) {
   }).setView([midLatLng[0], midLatLng[1]], 15);
 
   var startIcon = L.icon({
-      iconUrl: 'icons/start-marker.png',
+      iconUrl: startMarker,
       iconSize: [24, 24],
       iconAnchor: [10, 10],
       popupAnchor: [-3, -76]
   });    
   
   var stopIcon = L.icon({
-      iconUrl: 'icons/stop-marker.png',
+      iconUrl: stopMarker,
       iconSize: [24, 24],
       iconAnchor: [20, 20],
       popupAnchor: [-3, -76]
