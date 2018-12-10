@@ -573,6 +573,10 @@ function setupDisplay() {
                     folders.push(el);
                 }
             });
+
+            $('#waitDialog').css('display', 'none');
+
+
         } catch (error) {
 
         }
