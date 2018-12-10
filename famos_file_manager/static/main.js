@@ -576,11 +576,6 @@ function setupDisplay() {
         } catch (error) {
 
         }
-        
-        $('#newFolderName').val('');
-        $('#folderDialog').css('display', 'inline-block');
-    
-        $('#waitDialog').css('display', 'none');
 
     });
 
