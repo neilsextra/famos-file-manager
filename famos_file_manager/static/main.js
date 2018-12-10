@@ -549,37 +549,35 @@ function setupDisplay() {
     var parameters = {};
 
     $.get('/list', parameters, function(data) {
-        try {
-            var html = "";
-            var entries = JSON.parse(data)
-            var names =[];
+        var html = "";
+        var entries = JSON.parse(data)
+        var names =[];
 
-            for (entry in entries) {
-                html = generateSwiperEntry(html, entries[entry].folder, entries[entry].start_time);      
-                names.push(entries[entry].folder); 
-            }
-
-            $('#swiper-wrapper').html(html);
-        
-            $('#swiper-container').css('visibility', 'visible');
-        
-            swiper = createSwipperControl();
-        
-            $('#swiper-container').css('visibility', 'visible');
-        
-            folders = [];
-            $.each(names, function(i, el){
-                if($.inArray(el, folders) === -1) {
-                    folders.push(el);
-                }
-            });
-
-            $('#waitDialog').css('display', 'none');
-
-
-        } catch (error) {
-
+        for (entry in entries) {
+            html = generateSwiperEntry(html, entries[entry].folder, entries[entry].start_time);      
+            names.push(entries[entry].folder); 
         }
+
+        $('#swiper-wrapper').html(html);
+    
+        $('#swiper-container').css('visibility', 'visible');
+    
+        swiper = createSwipperControl();
+    
+        $('#swiper-container').css('visibility', 'visible');
+    
+        folders = [];
+        $.each(names, function(i, el){
+            if($.inArray(el, folders) === -1) {
+                folders.push(el);
+            }
+        });
+
+        if ($.cookie("folder")) {
+           $('#folder').text($.cookie("folder"));
+        }
+
+        $('#waitDialog').css('display', 'none');
 
     });
 
@@ -649,7 +647,9 @@ $.fn.SetFolder = () => {
 $.fn.Select = (folder, index) => {
 
     $('#folder').text(folder);
- 
+
+    $.cookie("folder", folder, { expires : 1000 });
+  
 }
 
 $(document).ready(function() {
@@ -683,6 +683,7 @@ $(document).ready(function() {
 
     $('#selectFolder').bind('click', (e) => {
         $('#folder').text($('#newFolderName').val());
+        $.cookie("folder", $('#newFolderName').val(), { expires : 1000 });
         $('#folderDialog').css('display', 'none');
     });
     
