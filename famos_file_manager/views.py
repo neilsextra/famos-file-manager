@@ -50,8 +50,6 @@ class FamosParser:
      id = packed.group(1)
      content = packed.group(2) 
 
-     # print('Size:', id, len(content), len(data), len(packed.group(0)))
-
      if id == b'CF':
         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
         m = re.search(b"([0-9]),([0-9]),([0-9]).*", process.group(1), re.DOTALL)
@@ -174,7 +172,7 @@ class FamosParser:
 def getConfiguration():    
    account_key = None
    account_name = None
-   vehicle_name = None
+   default_folder_name = None
    container_name = None
    save_files = 'true'
    socket_timeout = None
@@ -184,7 +182,7 @@ def getConfiguration():
 
       account_name = config.ACCOUNT_NAME
       container_name = config.CONTAINER_NAME
-      vehicle_name = config.VEHICLE_NAME
+      default_folder_name = config.DEFAULT_FOLDER_NAME
       save_files = config.SAVE_FILES
       socket_timeout = config.SOCKET_TIMEOUT
 
@@ -198,18 +196,28 @@ def getConfiguration():
    except ImportError:
       pass
 
+   account_key = environ.get('ACCOUNT_KEY', account_key)
+   account_name = environ.get('ACCOUNT_NAME', account_name)
+   container_name = environ.get('CONTAINER_NAME', container_name)
+   default_folder_name = environ.get('DEFAULT_FOLDER_NAME', default_folder_name)
+   save_files = environ.get('SAVE_FILES', save_files)
+   socket_timeout = environ.get('SOCKET_TIMEOUT', socket_timeout)
+
    return {
       "account_key": account_key,
       "account_name": account_name,
       'container_name': container_name,
-      'vehicle_name': vehicle_name,
+      'default_folder_name': default_folder_name,
       'save_files': save_files,
       'socket_timeout': socket_timeout
    }   
 
-def storeFiles(content, fileNames, start_time, summary, buffers):
+def storeFiles(content, folder, fileNames, start_time, summary, buffers):
    configuration = getConfiguration()
 
+   if (folder == None):
+      folder = configuration['container_name']
+   
    print('Account Name: ', configuration['account_name'])
    print('Container Name: ', configuration['container_name'])
 
@@ -225,14 +233,14 @@ def storeFiles(content, fileNames, start_time, summary, buffers):
       for iBuffer, buffer in enumerate(buffers):    
          print(fileNames[iBuffer])
          block_blob_service.create_blob_from_stream(configuration['container_name'], 
-                                                    configuration['vehicle_name'] + '/' + start_time + '/' +
+                                                    folder + '/' + start_time + '/' +
                                                     fileNames[iBuffer] + '.gz', 
                                                     io.BytesIO(zlib.compress(buffer)))
    
-   block_blob_service.create_blob_from_stream(configuration['container_name'], configuration['vehicle_name'] + '/' + start_time + '/output.csv.gz',
+   block_blob_service.create_blob_from_stream(configuration['container_name'], folder + '/' + start_time + '/output.csv.gz',
                                               io.BytesIO(zlib.compress(content.encode())))
    
-   block_blob_service.create_blob_from_stream(configuration['container_name'],  configuration['vehicle_name'] + '/' + start_time + '/summary.json',
+   block_blob_service.create_blob_from_stream(configuration['container_name'],  folder + '/' + start_time + '/summary.json',
                                               io.BytesIO(summary.encode()))
 
    print('Upload Completed')
@@ -266,7 +274,7 @@ def list():
           data = re.search("(.*)\/(.*)\/(summary\.json)$", blob.name, re.DOTALL)
           output.append({
              "summary_file": blob.name,
-             "vehicle": data.group(1),
+             "folder": data.group(1),
              "start_time": data.group(2)
           })
     
@@ -275,7 +283,6 @@ def list():
 
 @app.route("/retrieve", methods=["GET"])
 def retrieve():
-   print('In retrieve')
    timestamp = request.args.get('timestamp')
    name = request.args.get('name')
 
@@ -298,7 +305,10 @@ def retrieve():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    app.logger.info('Upload request received')
+    folder = request.form['folder']
+
+    app.logger.info('Upload request received - folder', folder)
+
     uploadedFiles = request.files
     
     matrix = []
@@ -311,10 +321,16 @@ def upload():
     start_time = 0 
     stop_time = 0 
 
+    processedFiles = []
 
     for uploadFile in uploadedFiles:
-        app.logger.info('Processing', uploadFile)
  
+        if (not uploadFile.endswith('.raw')):
+            continue
+
+        processedFiles.append(uploadFile)
+
+        app.logger.info('Processing', uploadFile)
         file = request.files.get(uploadFile)
         print(file)
         
@@ -332,7 +348,6 @@ def upload():
             fileNames.append(uploadFile)
  
             if (parser.getType() == '52'):
-               print('Start Time:', re.sub(r'\..*', '', data[0]))
                start_time = re.sub(r'\..*', '', data[0])
                stop_time = re.sub(r'\..*', '', data[len(data) - 1])
         
@@ -365,13 +380,15 @@ def upload():
 
         famosWriter.writerow(row)
 
-    contents = csvfile.getvalue()
-    summary = json.dumps({"start": start_time, "stop": stop_time}, sort_keys=True)
+    content = csvfile.getvalue()
+    summary = json.dumps({"start": start_time, "stop": stop_time, 
+                          "titles": titles, "types":types,
+                          "files": processedFiles}, sort_keys=True)
     
-    thread = threading.Thread(name='storefiles', target=storeFiles, args=(contents, fileNames, start_time, summary, buffers))
+    thread = threading.Thread(name='storefiles', target=storeFiles, args=(content, folder, fileNames, start_time, summary, buffers))
     thread.setDaemon(True)
     thread.start()
 
     csvfile.close()
 
-    return contents
+    return content

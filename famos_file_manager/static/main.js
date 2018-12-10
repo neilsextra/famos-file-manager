@@ -14,6 +14,9 @@ var currentLatLng = null;
 var imageVehicleSide = null;
 var imageVehicleFront= null;
 var swiper = null;
+var folders = []
+
+var seletedMission = -1;
 
 /**
  * Distance between to points
@@ -124,7 +127,7 @@ function getLatLngCenter(latLngInDegr) {
  function clearCanvas(parentID, canvasID) {
     $('#' + canvasID).remove(); 
     $(parentID).append('<canvas id= "'+ canvasID + 
-            '" width="400" height="130" style="position:absolute; left:0px; right:0px; top:0px; bottom:0px;" />');
+            '" width="400" height="110" style="position:absolute; left:0px; right:0px; top:0px; bottom:20px;" />');
 
  }
 
@@ -196,6 +199,30 @@ function showTab(evt, tab, button) {
 
 }
 
+/**
+ * Build the Menu
+ * @param {*} folders the folders to build 
+ */
+function buildMenu(folders) {
+    var htmlFolders = "<a id='set-folder' onclick='$(this).SetFolder()')>Set Folder...</a>";
+
+    if (folders.length > 0) {
+        htmlFolders += "<hr></hr>";
+    }
+
+    var index = 0;
+
+    for (folder in folders) {
+        var click = '$(this).Select("' + escape(folders[folder]) + '","' + index + '")'
+        var menuID = 'menu-' + folder
+        htmlFolders += `<a id='${menuID}' onclick='${click}'> ${folders[folder]}</a>`;
+        index += 1;
+    }
+
+    $('#dropdown').html(htmlFolders);
+
+}
+  
 /**
 * Show the Map
 * @param {*} columns the columns in the data
@@ -450,7 +477,7 @@ function generateSlide(name, startTime) {
     "\"" + name + "\",\"" + startTime + "\");'> " + 
         "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
         "<div class='play'>" + 
-        "<img src='" + playImage + "' style='width:32; height:32px; margin-top:80px;'/></div>" +
+        "<img src='" + playImage + "' style='width:32; height:32px; margin-top:100px;'/></div>" +
         "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
         "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(startTime) * 1000)) + "</label></td>" +  
         "</tr>" + 
@@ -515,23 +542,45 @@ function displayResults(results, callback) {
 
 }
 
-function setupSwiper() {
+function setupDisplay() {
+
+    $('#waitDialog').css('display', 'inline-block');
+
     var parameters = {};
 
     $.get('/list', parameters, function(data) {
-       var html = "";
-        var entries = JSON.parse(data)
-        for (entry in entries) {
-            html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);       
-        }
+        try {
+            var html = "";
+            var entries = JSON.parse(data)
+            var names =[];
 
-        $('#swiper-wrapper').html(html);
+            for (entry in entries) {
+                html = generateSwiperEntry(html, entries[entry].folder, entries[entry].start_time);      
+                names.push(entries[entry].folder); 
+            }
+
+            $('#swiper-wrapper').html(html);
+        
+            $('#swiper-container').css('visibility', 'visible');
+        
+            swiper = createSwipperControl();
+        
+            $('#swiper-container').css('visibility', 'visible');
+        
+            folders = [];
+            $.each(names, function(i, el){
+                if($.inArray(el, folders) === -1) {
+                    folders.push(el);
+                }
+            });
+        } catch (error) {
+
+        }
+        
+        $('#newFolderName').val('');
+        $('#folderDialog').css('display', 'inline-block');
     
-        $('#swiper-container').css('visibility', 'visible');
-    
-        swiper = createSwipperControl();
-    
-        $('#swiper-container').css('visibility', 'visible');
+        $('#waitDialog').css('display', 'none');
 
     });
 
@@ -539,6 +588,9 @@ function setupSwiper() {
 
 function refreshView(callback) {
     var parameters = {};
+    var names =[];
+    
+    $('#waitDialog').css('display', 'inline-block');
 
     $.get('/list', parameters, function(data) {
         var html = "";
@@ -546,14 +598,24 @@ function refreshView(callback) {
         
         for (entry in entries) {
             html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);
+            names.push(entries[entry].folder); 
         }       
     
         $('#swiper-wrapper').html(html);
         
         swiper.update();
 
+        folders = [];
+        $.each(names, function(i, el){
+            if($.inArray(el, folders) === -1) {
+                folders.push(el);
+            }
+        });
+
         callback();
-        
+
+        $('#waitDialog').css('display', 'none');  
+
     });
 
 }
@@ -579,119 +641,180 @@ function showMission(name, timestamp) {
 
 }
 
+$.fn.SetFolder = () => {
+    $('#newFolderName').val('');
+    $('#folderDialog').css('display', 'inline-block');
+
+}
+
+$.fn.Select = (folder, index) => {
+
+    $('#folder').text(folder);
+ 
+}
+
 $(document).ready(function() {
 
-  setupSwiper();
+    window.onclick = event => {
 
-  var dropzone = $('#droparea');
-
-  dropzone.on('dragover', function() {
-    dropzone.addClass('hover');
-    return false;
-  });
-
-  dropzone.on('dragleave', function() {
-    dropzone.removeClass('hover');
-    return false;
-  });
-  
-  dropzone.on('drop', function(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    dropzone.removeClass('hover');
-   
-    //retrieve uploaded files data
-    var files = e.originalEvent.dataTransfer.files;
-    processFiles(files);
-    
-    return false;
-
-  });
-  
-  var uploadBtn = $('#uploadbtn');
-  var defaultUploadBtn = $('#upload');
- 
-  uploadBtn.on('click', function(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    defaultUploadBtn.click();
-  });
-
-  defaultUploadBtn.on('change', function() {
-    var files = $(this)[0].files;
-
-    processFiles(files);
-
-    return false;
-
-  });  
-
-  function processFiles(files) {
-    $('#waitDialog').css('display', 'inline-block');
-
-    try {         
-      var formData = new FormData();
-  
-      for (var iFile = 0; iFile < files.length; iFile++) {
-        formData.append(files[iFile].name, files[iFile]);
-      }
-
-      $.ajax({
-          url: '/upload',
-          type: 'POST',
-          maxChunkSize: 10000,
-          contentType: false,
-          processData: false,
-          async: true,
-          data: formData,
-              xhr: function() {
-                  var xhr = $.ajaxSettings.xhr();
-
-                  xhr.upload.addEventListener('progress', function (event) {
-                       if (event.lengthComputable) {
-                          var percentComplete = event.loaded / event.total;
-                       }
-                      
-                  }, false);
-
-                  xhr.upload.addEventListener('load', function (event) {
-                      $('#percentage').html('Loaded');                        
-                 }, false);
-
-                  return xhr;
-
-              },
-              error: function (err) {
-                  $('#waitDialog').css('display', 'none');  
-                  
-                  alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
-
-                  var notification = new Notification("Error in upload", {
-                      dir: "auto",
-                      lang: "",
-                      body:'Error: [' + err.status + '] - \'' + err.statusText + '\'',
-                      tag: "Upload Error"
-
-                  });
-              },
-              success: function (result) {  
-   
-                displayResults(result, function(columns, rows) {
-                    var slide = generateSlide('hawkei001', Math.trunc(rows[0][12]));
- 
-                    swiper.prependSlide([slide]);
- 
-                });
-
-                $('#waitDialog').css('display', 'none');  
-
-              }
-          });
-         
-      } catch(e) {
-          alert(e);
-      }
+        if (document.getElementById("dropdown").classList.contains('show')) {
+          document.getElementById("dropdown").classList.remove('show');
+          document.getElementById("dropdown").classList.toggle("view");
+        } else if (document.getElementById("dropdown").classList.contains('view')) {
+          document.getElementById("dropdown").classList.remove('view');
+        }
       
-  }
+    }
+
+    $('#folders').bind('click', (e) => {
+
+        buildMenu(folders);
+
+        document.getElementById("dropdown").classList.toggle("show");
+        
+    });
+
+    $('#refresh').bind('click', (e) => {
+        
+        refreshView(function() {
+
+        });
+
+    });
+
+    $('#selectFolder').bind('click', (e) => {
+        $('#folder').text($('#newFolderName').val());
+        $('#folderDialog').css('display', 'none');
+    });
+    
+    $('#folderClose').bind('click', (e) => {
+        $('#folderDialog').css('display', 'none');
+    });
+
+    $('#cancelFolderSelection').bind('click', (e) => {
+        $('#folderDialog').css('display', 'none');
+    });
+
+    setupDisplay();
+
+    var dropzone = $('#droparea');
+
+    dropzone.on('dragover', function() {
+        dropzone.addClass('hover');
+        return false;
+    });
+
+    dropzone.on('dragleave', function() {
+        dropzone.removeClass('hover');
+        return false;
+    });
+    
+    dropzone.on('drop', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        dropzone.removeClass('hover');
+    
+        //retrieve uploaded files data
+        var files = e.originalEvent.dataTransfer.files;
+        processFiles(files);
+        
+        return false;
+
+    });
+    
+    var uploadBtn = $('#uploadbtn');
+    var defaultUploadBtn = $('#upload');
+    
+    uploadBtn.on('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        defaultUploadBtn.click();
+    });
+
+    defaultUploadBtn.on('change', function() {
+        var files = $(this)[0].files;
+
+        processFiles(files);
+
+        return false;
+
+    });  
+
+    function processFiles(files) {
+
+        $('#waitDialog').css('display', 'inline-block');
+
+        try {         
+            var formData = new FormData();
+
+            formData.append('folder', $('#folder').text());
+        
+            for (var iFile = 0; iFile < files.length; iFile++) {
+                formData.append(files[iFile].name, files[iFile]);
+            }
+
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                maxChunkSize: 10000,
+                contentType: false,
+                processData: false,
+                async: true,
+                data: formData,
+                    xhr: function() {
+                        var xhr = $.ajaxSettings.xhr();
+
+                        xhr.upload.addEventListener('progress', function (event) {
+                            if (event.lengthComputable) {
+                                var percentComplete = event.loaded / event.total;
+                            }
+                            
+                        }, false);
+
+                        xhr.upload.addEventListener('load', function (event) {
+                            $('#percentage').html('Loaded');                        
+                        }, false);
+
+                        return xhr;
+
+                    },
+                    error: function (err) {
+                        $('#waitDialog').css('display', 'none');  
+                        
+                        alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
+
+                        var notification = new Notification("Error in upload", {
+                            dir: "auto",
+                            lang: "",
+                            body:'Error: [' + err.status + '] - \'' + err.statusText + '\'',
+                            tag: "Upload Error"
+
+                        });
+                    },
+                    success: function (result) {  
+        
+                        displayResults(result, function(columns, rows) {
+                            var slide = generateSlide($('#folder').text(), Math.trunc(rows[0][12]));
+        
+                            swiper.prependSlide([slide]);
+                            
+                            if ($.inArray($('#folder').text(), folders) === -1) {
+
+                                folders.push($('#folder').text());
+                                
+                            }         
+
+                            $('#waitDialog').css('display', 'none');  
+
+                        });
+
+                    }
+            });
+                
+        } catch(e) {
+            alert(e);
+        }
+        
+    }
 
 });

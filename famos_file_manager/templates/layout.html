@@ -7,6 +7,7 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='site.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='modal.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='tab.css') }}"  />
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='dropdown.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='swiper', filename='dist/css/swiper.min.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='leaflet', filename='dist/leaflet.css') }}"  />
         
@@ -33,14 +34,18 @@
             <div style="position: absolute; overflow:hidden; top:0px; bottom:0px; left:0px; right:0px; background: url('{{ url_for('static', filename='ballon-blue.jpg') }}'); background-size: cover;  background-repeat: no-repeat;">
                 <img src="{{ url_for('static', filename='app-icon.png') }}" style="position:absolute; top:4px; left:5px;" alt="App"/>
                 <div id='toolbar'>
-                        <div style="position:absolute; top:16px; left:84px; font-weight:bold; font-size: 32px;  color:rgba(255,255,255,0.9)"><label>Famos Log: Upload Manager</label></div>
-                        <div style="position:absolute; top:16px; right:100px; height:30px; padding-left:4px; padding-top:6px; font-weight:medium; font-size: 16px;  width:400px; background-color: rgba(255,255,255, 0.30); color:black; border:2px solid #0174DF; ">
-                            <label id="vehicle">/famos/hawkei</label>
-                        </div>
-                        <div id='layout'> 
+                    <div style="position:absolute; top:16px; left:84px; font-weight:bold; font-size: 32px;  color:rgba(255,255,255,0.9)"><label>Famos Log: Upload Manager</label></div>
+                    <div style="position:absolute; top:16px; right:100px; height:30px; padding-top:8px; padding-left:4px; font-weight:medium; font-size: 16px;  width:400px; background-color: rgba(255,255,255, 0.30); color:black; border:2px solid #0174DF; ">
+                        <label id="folder"></label>
+                    </div>
+                    <button class='button' id="folders" style="position:absolute; right:50px; margin-top:12px; ">
+                        <img src="{{ url_for('static', filename='down-arrow.svg') }}" style="padding-top:6px; margin:auto; width:16px; height:16px; text-align:center;" alt="Refresh"/>
+                    </button>
+
+                    <div id='layout'> 
                         <span class='tool'>
-                            <button class='button' id="refresh" style="position:absolute; right:20px; margin-top:12px; ">
-                                <img src="{{ url_for('static', filename='refresh.svg') }}" style="padding-top:6px; margin-left:-4px; width:24px; height:24px; text-align:center;" alt="Refresh"/>
+                            <button class='button' id="refresh" style="position:absolute; right:10px; margin-top:12px;">
+                                <img src="{{ url_for('static', filename='refresh.svg') }}" style="padding-top:6px; margin:auto; width:16px; height:16px; text-align:center;" alt="Refresh"/>
                             </button>
                         </span>
                     </div>           
@@ -50,12 +55,40 @@
                 {% endblock %}
 
             </div>
+
+            <div id='dropdown' class='dropdown-content'></div>
             
-            <div id='waitDialog' class='modal'>
+             <div id='waitDialog' class='modal'>
                 <div style="position:fixed; text-align: center; top:50%; left:48%; margin-left:0px; margin-top:-100px;">
                     <div class='loader'></div>
                 </div>
             </div> 
 
         </div>
-     </body>
+        <div class='model' id='folderDialog' style='display:none'>
+            <div class='modal-blocker'>
+                <div style="position:absolute; padding:120px; top:0px; bottom:0px; left:0px; right:0px;">
+                    <div class='modal-content' style="margin-top:140px; width:540px;">
+                        <div class='modal-header'>
+                            <span class='close' id='folderClose'>&times;</span>
+                            <h2>Enter Folder</h2>
+                        </div>
+                        <div class='modal-body' style='background: rgba(0, 122, 204, 0.2); height:160px;'>
+                            <div style='width: 50%; display:inline-block; padding:20px;'>
+                            <label class='modal-label' style="margin-left:-20px; margin-top:10px;">Enter the <b>Folder</b> Name:</label> 
+                            <input class='modal-entry' id='newFolderName' style="margin-top:15px; width:320px;" name="folder" placeholder="folder..."></input>
+                            </div>
+                            <div style="position:absolute; bottom:0px; padding:10px;">
+                                <button class='modal-btn' id='selectFolder'>Select</button>  
+                                <button class='modal-cancel-btn' id='cancelFolderSelection'>Cancel</button>
+                            </div>
+                            <div class='imageFrame' style='position:absolute; margin-left:20px; margin-right:10px; width:60px; height:60px; top:85px; right:0px; padding:20px; background:rgb(26, 164, 255); opacity:0.7; border: 2px solid rgb(0, 122, 204)'>
+                                <img src="{{ url_for('static', filename='map.svg') }}" style="width:100%; height:100%;" alt="folder"></img>                       
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
