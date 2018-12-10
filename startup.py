@@ -28,6 +28,4 @@ if __name__ == '__main__':
 
         PORT = 5555
     
-    Bower(app)  
-    print('Added Bower Support', __name__)
     app.run(HOST, PORT)
