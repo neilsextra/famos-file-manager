@@ -27,6 +27,7 @@
         <script type="text/javascript" src="{{ bower_url_for(component='leaflet-image', filename='leaflet-image.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='chart.js', filename='dist/Chart.min.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='papaparse', filename='papaparse.min.js') }}"></script>     
+        <script type="text/javascript" src="{{ bower_url_for(component='jszip', filename='dist/jszip.min.js') }}"></script>     
         <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>     
     </head>
 
@@ -66,30 +67,6 @@
             </div> 
 
         </div>
-        <div class='model' id='folderDialog' style='display:none'>
-            <div class='modal-blocker'>
-                <div style="position:absolute; padding:120px; top:0px; bottom:0px; left:0px; right:0px;">
-                    <div class='modal-content' style="margin-top:140px; width:540px;">
-                        <div class='modal-header'>
-                            <span class='close' id='folderClose'>&times;</span>
-                            <h2>Enter Folder</h2>
-                        </div>
-                        <div class='modal-body' style='background: rgba(0, 122, 204, 0.2); height:160px;'>
-                            <div style='width: 50%; display:inline-block; padding:20px;'>
-                            <label class='modal-label' style="margin-left:-20px; margin-top:10px;">Enter the <b>Folder</b> Name:</label> 
-                            <input class='modal-entry' id='newFolderName' style="margin-top:15px; width:320px;" name="folder" placeholder="folder..."></input>
-                            </div>
-                            <div style="position:absolute; bottom:0px; padding:10px;">
-                                <button class='modal-btn' id='selectFolder'>Select</button>  
-                                <button class='modal-cancel-btn' id='cancelFolderSelection'>Cancel</button>
-                            </div>
-                            <div class='imageFrame' style='position:absolute; margin-left:20px; margin-right:10px; width:60px; height:60px; top:85px; right:0px; padding:20px; background:rgb(26, 164, 255); opacity:0.7; border: 2px solid rgb(0, 122, 204)'>
-                                <img src="{{ url_for('static', filename='map.svg') }}" style="width:100%; height:100%;" alt="folder"></img>                       
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        
     </body>
 </html>

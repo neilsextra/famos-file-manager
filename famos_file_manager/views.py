@@ -12,6 +12,7 @@ import csv
 import io
 import re
 import zlib
+from zipfile import ZipFile
 import json
 import threading
 from os import environ
@@ -100,31 +101,31 @@ class FamosParser:
         __self.__count = 0         
         c = 0 
         p = 0
-        v = b'' 
+        v = [] 
         for b in values:
            if (p == 4 and __self.__numberFormat in __self.__longFormats):
               if __self.__numberFormat == '6':
-                 r = struct.unpack("i", v)[0] 
+                 r = struct.unpack("i", b''.join(v))[0] 
                  if (__self.__type in __self.__geoTypes):  
                     r = r/10000000
                  __self.__data.append('%.7f' % (r))
               elif __self.__numberFormat == '7':
-                 r = struct.unpack("f", v)[0] 
+                 r = struct.unpack("f", b''.join(v))[0] 
                  __self.__data.append('%.7f' % (r))
 
               __self.__count += 1         
               p = 0
-              v = b'' 
+              v = [] 
 
            elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
-              r = struct.unpack(">h", v)[0] 
+              r = struct.unpack(">h",  b''.join(v))[0] 
               r = r/100000
               __self.__data.append('%.7f' % (r))
               __self.__count += 1         
               p = 0
-              v = b'' 
+              v = [] 
 
-           v += b.to_bytes(1, byteorder='big') 
+           v.append(b.to_bytes(1, byteorder='big')) 
            p = p + 1
 
      else:
@@ -135,8 +136,8 @@ class FamosParser:
         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
         __self.process(process.group(2))  
   
-  def parse(__self, file):
-     __self.__buffer = file.read()
+  def parse(__self, content):
+     __self.__buffer = content
      __self.process(__self.__buffer)
 
   def summary(__self):
@@ -305,90 +306,97 @@ def retrieve():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    folder = request.form['folder']
+   matrix = []
+   titles = []
+   types = []
+   sizes = []
+   buffers = []
+   fileNames = []
 
-    app.logger.info('Upload request received - folder', folder)
+   folder = "unknown"
 
-    uploadedFiles = request.files
-    
-    matrix = []
-    titles = []
-    types = []
-    sizes = []
-    buffers = []
-    fileNames = []
+   start_time = 0 
+   stop_time = 0 
 
-    start_time = 0 
-    stop_time = 0 
+   processedFiles = []
+   uploadedFiles = request.files
 
-    processedFiles = []
+   for uploadFile in uploadedFiles:
+      print(uploadFile)
 
-    for uploadFile in uploadedFiles:
+      input_zip = ZipFile(request.files.get(uploadFile))
+         
+      for name in input_zip.namelist():
+         print(name)
  
-        if (not uploadFile.endswith('.raw')):
+         if (not name.endswith('.raw')):
             continue
 
-        processedFiles.append(uploadFile)
+         if (name.startswith('GPS.time.sec_BUSDAQ')):
+            parts = re.search("_([0-9]*)?(\.raw)", name, re.DOTALL)
+            folder = parts.group(1)
 
-        app.logger.info('Processing', uploadFile)
-        file = request.files.get(uploadFile)
-        print(file)
-        
-        parser = FamosParser()
-        parser.parse(file)
+         processedFiles.append(name)
 
-        data = parser.getData()
+         app.logger.info('Processing', name)
 
-        if len(data) > 0:
+         content = input_zip.read(name)
+       
+         parser = FamosParser()
+         parser.parse(content)
+
+         data = parser.getData()
+
+         if len(data) > 0:
             sizes.append(len(data))
             matrix.append(data)
             types.append(parser.getType())
             titles.append(parser.getTitle())
             buffers.append(parser.getBuffer())
-            fileNames.append(uploadFile)
- 
+            fileNames.append(name)
+
             if (parser.getType() == '52'):
                start_time = re.sub(r'\..*', '', data[0])
                stop_time = re.sub(r'\..*', '', data[len(data) - 1])
         
-    minSize = min(sizes)
-    maxSize = max(sizes)
+   minSize = min(sizes)
+   maxSize = max(sizes)
 
-    sampleSize = int(maxSize/minSize)
-    csvfile = io.StringIO()
-    famosWriter = csv.writer(csvfile, delimiter=',',
-                            quotechar='"', quoting=csv.QUOTE_MINIMAL)
+   sampleSize = int(maxSize/minSize)
+   csvfile = io.StringIO()
+   famosWriter = csv.writer(csvfile, delimiter=',',
+                                     quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-    famosWriter.writerow(titles)
+   famosWriter.writerow(titles)
 
-    iRow = 0
-    iSample = 0
+   iRow = 0
+   iSample = 0
 
-    while iRow < minSize:
-        iColumn = 0
-        row = []
-        while iColumn < len(matrix): 
-            if (sizes[iColumn] == minSize):
-                row.append(matrix[iColumn][iRow])
-            else:
-                row.append(matrix[iColumn][iSample])
+   while iRow < minSize:
+      iColumn = 0
+      row = []
+      while iColumn < len(matrix): 
+         if (sizes[iColumn] == minSize):
+            row.append(matrix[iColumn][iRow])
+         else:
+            row.append(matrix[iColumn][iSample])
     
-            iColumn += 1
+         iColumn += 1
 
-        iRow += 1
-        iSample = iSample + sampleSize if (iSample + sampleSize) < minSize else iRow
+      iRow += 1
+      iSample = iSample + sampleSize if (iSample + sampleSize) < minSize else iRow
 
-        famosWriter.writerow(row)
+      famosWriter.writerow(row)
 
-    content = csvfile.getvalue()
-    summary = json.dumps({"start": start_time, "stop": stop_time, 
+   content = csvfile.getvalue()
+   summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
                           "files": processedFiles}, sort_keys=True)
     
-    thread = threading.Thread(name='storefiles', target=storeFiles, args=(content, folder, fileNames, start_time, summary, buffers))
-    thread.setDaemon(True)
-    thread.start()
+   thread = threading.Thread(name='storefiles', target=storeFiles, args=(content, folder, fileNames, start_time, summary, buffers))
+   thread.setDaemon(True)
+   thread.start()
 
-    csvfile.close()
-
-    return content
+   csvfile.close()
+   
+   return content

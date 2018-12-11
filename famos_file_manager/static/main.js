@@ -204,7 +204,7 @@ function showTab(evt, tab, button) {
  * @param {*} folders the folders to build 
  */
 function buildMenu(folders) {
-    var htmlFolders = "<a id='set-folder' onclick='$(this).SetFolder()')>Set Folder...</a>";
+    var htmlFolders = "<a id='clear-folder' onclick='$(this).Clear()')>Clear</a>";
 
     if (folders.length > 0) {
         htmlFolders += "<hr></hr>";
@@ -573,10 +573,6 @@ function setupDisplay() {
             }
         });
 
-        if ($.cookie("folder")) {
-           $('#folder').text($.cookie("folder"));
-        }
-
         $('#waitDialog').css('display', 'none');
 
     });
@@ -638,17 +634,15 @@ function showMission(name, timestamp) {
 
 }
 
-$.fn.SetFolder = () => {
-    $('#newFolderName').val('');
-    $('#folderDialog').css('display', 'inline-block');
+$.fn.Clear = () => {
+
+    $('#folder').text('');
 
 }
 
 $.fn.Select = (folder, index) => {
 
     $('#folder').text(folder);
-
-    $.cookie("folder", folder, { expires : 1000 });
   
 }
 
@@ -679,20 +673,6 @@ $(document).ready(function() {
 
         });
 
-    });
-
-    $('#selectFolder').bind('click', (e) => {
-        $('#folder').text($('#newFolderName').val());
-        $.cookie("folder", $('#newFolderName').val(), { expires : 1000 });
-        $('#folderDialog').css('display', 'none');
-    });
-    
-    $('#folderClose').bind('click', (e) => {
-        $('#folderDialog').css('display', 'none');
-    });
-
-    $('#cancelFolderSelection').bind('click', (e) => {
-        $('#folderDialog').css('display', 'none');
     });
 
     setupDisplay();
@@ -744,77 +724,93 @@ $(document).ready(function() {
 
         $('#waitDialog').css('display', 'inline-block');
 
-        try {         
-            var formData = new FormData();
+        var zip = JSZip();
+        var folder = '';
 
-            formData.append('folder', $('#folder').text());
-        
-            for (var iFile = 0; iFile < files.length; iFile++) {
-                formData.append(files[iFile].name, files[iFile]);
+        for (var iFile = 0; iFile < files.length; iFile++) {             
+            var f = files[iFile];
+            zip.file(f.name, f);
+            if (f.name.startsWith('GPS.time.sec_BUSDAQ')) {
+                parts = /_([0-9]*)?(\.raw)/.exec(f.name);
+                folder = parts[1];
             }
-
-            $.ajax({
-                url: '/upload',
-                type: 'POST',
-                maxChunkSize: 10000,
-                contentType: false,
-                processData: false,
-                async: true,
-                data: formData,
-                    xhr: function() {
-                        var xhr = $.ajaxSettings.xhr();
-
-                        xhr.upload.addEventListener('progress', function (event) {
-                            if (event.lengthComputable) {
-                                var percentComplete = event.loaded / event.total;
-                            }
-                            
-                        }, false);
-
-                        xhr.upload.addEventListener('load', function (event) {
-                            $('#percentage').html('Loaded');                        
-                        }, false);
-
-                        return xhr;
-
-                    },
-                    error: function (err) {
-                        $('#waitDialog').css('display', 'none');  
-                        
-                        alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
-
-                        var notification = new Notification("Error in upload", {
-                            dir: "auto",
-                            lang: "",
-                            body:'Error: [' + err.status + '] - \'' + err.statusText + '\'',
-                            tag: "Upload Error"
-
-                        });
-                    },
-                    success: function (result) {  
-        
-                        displayResults(result, function(columns, rows) {
-                            var slide = generateSlide($('#folder').text(), Math.trunc(rows[0][12]));
-        
-                            swiper.prependSlide([slide]);
-                            
-                            if ($.inArray($('#folder').text(), folders) === -1) {
-
-                                folders.push($('#folder').text());
-                                
-                            }         
-
-                            $('#waitDialog').css('display', 'none');  
-
-                        });
-
-                    }
-            });
-                
-        } catch(e) {
-            alert(e);
+               
         }
+
+        zip.generateAsync({type: "uint8array"}).then(function (data) {
+
+            postData(folder, data);
+
+        });
+
         
     }
+
+    function postData(folder, data) {
+        var zipFile = new File([data], 'famos.zip')
+        var formData = new FormData();
+
+       formData.append('famos.zip', zipFile);
+        
+        $.ajax({
+            url: '/upload',
+            type: 'POST',
+            maxChunkSize: 10000,
+            contentType: false,
+            processData: false,
+            async: true,
+            data: formData,
+                xhr: function() {
+                    var xhr = $.ajaxSettings.xhr();
+
+                    xhr.upload.addEventListener('progress', function (event) {
+                        if (event.lengthComputable) {
+                            var percentComplete = event.loaded / event.total;
+                        }
+                        
+                    }, false);
+
+                    xhr.upload.addEventListener('load', function (event) {
+                        $('#percentage').html('Loaded');                        
+                    }, false);
+
+                    return xhr;
+
+                },
+                error: function (err) {
+                    $('#waitDialog').css('display', 'none');  
+                    
+                    alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
+
+                    var notification = new Notification("Error in upload", {
+                        dir: "auto",
+                        lang: "",
+                        body:'Error: [' + err.status + '] - \'' + err.statusText + '\'',
+                        tag: "Upload Error"
+
+                    });
+                },
+                success: function (result) {  
+
+                    displayResults(result, function(columns, rows) {
+                        var slide = generateSlide(folder, Math.trunc(rows[0][12]));
+
+                        swiper.prependSlide([slide]);
+                        
+                        if ($.inArray($('#folder').text(), folders) === -1) {
+
+                            folders.push($('#folder').text());
+                            
+                        }         
+
+                        $('#waitDialog').css('display', 'none');  
+
+                    });
+
+                }
+        });
+
+    }
+    
 
 });
