@@ -14,9 +14,9 @@ var currentLatLng = null;
 var imageVehicleSide = null;
 var imageVehicleFront= null;
 var swiper = null;
-var folders = []
+var folders = [];
 
-var seletedMission = -1;
+var selected = null;
 
 /**
  * Distance between to points
@@ -339,7 +339,7 @@ function showCharts(columns, rows) {
   var distanceKms = 0;
   var latlng = null;
   var topSpeed = 0.0;
-  var startTime = null;
+  var timestamp = null;
   var count = 0;
 
   for (row in rows) {
@@ -353,8 +353,8 @@ function showCharts(columns, rows) {
              
            }
 
-          if (!startTime) {
-              startTime = Math.trunc(rows[row][12]);
+          if (!timestamp) {
+            timestamp = Math.trunc(rows[row][12]);
           }
 
           latlng = [parseFloat(rows[row][6]), parseFloat(rows[row][7])];
@@ -365,7 +365,7 @@ function showCharts(columns, rows) {
           if (row % modulus == 0 && rows[row][11] != 0 && rows[row][4] != 0) {
              dataSpeed.push(rows[row][11]);
              dataHeight.push(rows[row][4]);
-             var totalSeconds = Math.trunc(rows[row][12]) - startTime;
+             var totalSeconds = Math.trunc(rows[row][12]) - timestamp;
              var hours = Math.floor(totalSeconds / 3600);
              totalSeconds %= 3600;
              var minutes = Math.floor(totalSeconds / 60);
@@ -471,30 +471,35 @@ function createSwipperControl() {
   return swiper;
 
 }
-function generateSlide(name, startTime) {
+function generateSlide(name, timestamp) {
     var slide = 
     "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255,255,255, 0.30);' onclick='showMission(" +
-    "\"" + name + "\",\"" + startTime + "\");'> " + 
+    "\"" + name + "\",\"" + timestamp + "\");'> " + 
         "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
         "<div class='play'>" + 
         "<img src='" + playImage + "' style='width:32; height:32px; margin-top:100px;'/></div>" +
         "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
-        "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(startTime) * 1000)) + "</label></td>" +  
+        "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(timestamp) * 1000)) +
+         "</label></td>" +  
         "</tr>" + 
         "</table>" +
         "</div>" +
-        "<div style='position:absolute; left:3px; bottom:10px; right:3px;'>" + 
+        "<div style='position:absolute; left:3px; bottom:8px; right:3px; margin-bottom:-5px;'>" + 
             " <label style='color:black;font-family: monospace; font-size: 14px; width:100%; " + 
         " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
-    name + "</label></div></div>";
+        name + "</label>" +
+        "<div id='" + name + '-' + timestamp + 
+        "' style='position:absolute: left:0px; right:0px; bottom:0px; height:5px; margin-bottom:-4px; margin-left:-2px; margin-right:-2px;'><p></p></div>" +
+        "</div>" +
+    "</div>";
 
     return slide;
 
 }
 
-function generateSwiperEntry(html, name, startTime) {
+function generateSwiperEntry(html, name, timestamp) {
   
-    return html + generateSlide(name, startTime);
+    return html + generateSlide(name, timestamp);
 
 }
 
@@ -628,6 +633,9 @@ function showMission(name, timestamp) {
 
         });
 
+        $('#' + selected).css('background-color', '');
+        $('#' + name + '-' + timestamp).css('background-color', 'orange');
+        selected =  name + '-' + timestamp;
         $('#waitDialog').css('display', 'none');
     
     });
@@ -796,7 +804,12 @@ $(document).ready(function() {
                         var slide = generateSlide(folder, Math.trunc(rows[0][12]));
 
                         swiper.prependSlide([slide]);
+
+                        $('#' + selected).css('background-color', '');
+                        $('#' + folder + '-' + Math.trunc(rows[0][12])).css('background-color', 'orange');
                         
+                        selected =  folder + '-' + Math.trunc(rows[0][12]);
+                                      
                         if ($.inArray($('#folder').text(), folders) === -1) {
 
                             folders.push($('#folder').text());
@@ -810,7 +823,6 @@ $(document).ready(function() {
                 }
         });
 
-    }
-    
+    } 
 
 });
