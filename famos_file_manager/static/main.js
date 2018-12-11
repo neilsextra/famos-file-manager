@@ -376,31 +376,52 @@ function showCharts(columns, rows) {
           }
       }
 
-  }
+    }
    
     clearCanvas('#speedFrame', 'speedChart');
-    
-    var ctx = document.getElementById("speedChart").getContext('2d');
 
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-          labels: labels,
-       datasets: [{ 
-          data: dataSpeed,
-          label: "Speed in Kmh",
-          borderColor: "#3e95cd",
-          fill: false
-    }],
-    options: {
-      title: {    
-        display: true,
-        text: 'Speed of Vehicle'
-      }
+    new Chart(document.getElementById("speedChart").getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+        datasets: [{ 
+            data: dataSpeed,
+            label: "Speed in Kmh",
+            borderColor: "#3e95cd",
+            fill: false
+        }],
+        options: {
+        title: {    
+            display: true,
+            text: 'Speed of Vehicle'
+        }
+        }
     }
-  }
-  }); 
+  
+    }); 
    
+    clearCanvas('#heightFrame', 'heightChart');
+
+    new Chart( document.getElementById("heightChart").getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+        datasets: [{ 
+            data: dataHeight,
+            label: "Height in metres",
+            borderColor: "#3e95cd",
+            fill: false
+        }],
+        options: {
+        title: {
+            display: true,
+            text: 'Terrain Height above Sea Level'
+        }
+        }
+    }
+
+    });
+
 }
 
 /**
