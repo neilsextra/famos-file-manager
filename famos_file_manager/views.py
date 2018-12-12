@@ -268,7 +268,7 @@ def list():
    try:
       blobs = block_blob_service.list_blobs(configuration['container_name'])
    except:
-       return json.dumps(output)
+      return json.dumps(output)
 
    for blob in blobs:
       if (re.match("(.*)\/(.*)\/(summary\.json)$", blob.name,  re.DOTALL)):
@@ -306,6 +306,9 @@ def retrieve():
 
 @app.route("/upload", methods=["POST"])
 def upload():
+   f = open('debug.txt', 'a') 
+   f.write('started\n')
+
    matrix = []
    titles = []
    types = []
@@ -322,12 +325,11 @@ def upload():
    uploadedFiles = request.files
 
    for uploadFile in uploadedFiles:
-      print(uploadFile)
 
       input_zip = ZipFile(request.files.get(uploadFile))
          
       for name in input_zip.namelist():
-         print(name)
+         f.write('saving: ' + name + '\n')
  
          if (not name.endswith('.raw')):
             continue
@@ -392,7 +394,8 @@ def upload():
    summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
                           "files": processedFiles}, sort_keys=True)
-    
+   f.write('started thread\n')
+   f.close() 
    thread = threading.Thread(name='storefiles', target=storeFiles, args=(content, folder, fileNames, start_time, summary, buffers))
    thread.setDaemon(True)
    thread.start()
