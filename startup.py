@@ -11,7 +11,6 @@ startup:app in the Gunicorn command.
 
 from os import environ
 from famos_file_manager.webapp import app
-from flask_bower import Bower
 
 print('Starting', __name__)
 
