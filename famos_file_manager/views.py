@@ -177,6 +177,7 @@ def getConfiguration():
    container_name = None
    save_files = 'true'
    socket_timeout = None
+   debug_file = None
  
    try:
       import famos_file_manager.configuration as config
@@ -186,6 +187,7 @@ def getConfiguration():
       default_folder_name = config.DEFAULT_FOLDER_NAME
       save_files = config.SAVE_FILES
       socket_timeout = config.SOCKET_TIMEOUT
+      debug_file = config.DEBUG_FILE
 
    except ImportError:
       pass
@@ -203,6 +205,7 @@ def getConfiguration():
    default_folder_name = environ.get('DEFAULT_FOLDER_NAME', default_folder_name)
    save_files = environ.get('SAVE_FILES', save_files)
    socket_timeout = environ.get('SOCKET_TIMEOUT', socket_timeout)
+   debug_file = environ.get('DEBUG_FILE', debug_file)
 
    return {
       "account_key": account_key,
@@ -210,7 +213,8 @@ def getConfiguration():
       'container_name': container_name,
       'default_folder_name': default_folder_name,
       'save_files': save_files,
-      'socket_timeout': socket_timeout
+      'socket_timeout': socket_timeout,
+      'debug_file': debug_file
    }   
 
 def storeFiles(content, folder, fileNames, start_time, summary, buffers):
@@ -306,7 +310,9 @@ def retrieve():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-   f = open('debug.txt', 'a') 
+   configuration = getConfiguration()
+
+   f = open(configuration.debug_file, 'a') 
    f.write('started\n')
 
    matrix = []
