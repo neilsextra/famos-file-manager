@@ -8,6 +8,7 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='modal.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='tab.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='dropdown.css') }}"  />
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='slider.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='swiper', filename='dist/css/swiper.min.css') }}"  />
         <link rel="stylesheet" type="text/css" href="{{ bower_url_for(component='leaflet', filename='dist/leaflet.css') }}"  />
         
@@ -17,6 +18,8 @@
 
             var startMarker = "{{ url_for('static', filename='start-marker.png') }}";            
             var stopMarker = "{{ url_for('static', filename='stop-marker.png') }}";
+            var imageVehicleFrontURL = "{{ url_for('static', filename='jeep-front.png') }}";
+            var imageVehicleSideURL = "{{ url_for('static', filename='jeep-side.png') }}";
         
         </script>
 
@@ -26,6 +29,7 @@
         <script type="text/javascript" src="{{ bower_url_for(component='leaflet', filename='dist/leaflet.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='leaflet-image', filename='leaflet-image.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='chart.js', filename='dist/Chart.min.js') }}"></script>     
+        <script type="text/javascript" src="{{ bower_url_for(component='canvas-gauges', filename='gauge.min.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='papaparse', filename='papaparse.min.js') }}"></script>     
         <script type="text/javascript" src="{{ bower_url_for(component='jszip', filename='dist/jszip.min.js') }}"></script>     
         <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>     

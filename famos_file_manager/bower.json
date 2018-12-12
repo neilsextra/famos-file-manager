@@ -19,6 +19,7 @@
     "leaflet-image": "^0.4.0",
     "papaparse": "^4.6.0",
     "chart.js": "^2.7.2",
-    "jszip": "git://github.com/Stuk/jszip"
+    "jszip": "git://github.com/Stuk/jszip",
+    "canvas-gauges": "git://github.com/Mikhus/canvas-gauges"
   }
 }

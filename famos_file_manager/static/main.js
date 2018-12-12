@@ -425,6 +425,176 @@ function showCharts(columns, rows) {
 }
 
 /**
+ * Show the Gauges
+ * @param {*} columns 
+ * @param {*} rows 
+ */
+function showGauges(columns, rows) {
+    var speedGauge = new RadialGauge({
+        renderTo: 'speedGauge',
+        width: 200,
+        height: 200,
+        units: 'Km/h',
+        title: false,
+        value: 0,
+        minValue: 0,
+        maxValue: 220,
+        majorTicks: [
+            '0','20','40','60','80','100','120','140','160','180','200','220'
+        ],
+        minorTicks: 2,
+        strokeTicks: false,
+        highlights: [
+            { from: 0, to: 50, color: 'rgba(0,255,0,.15)' },
+            { from: 50, to: 100, color: 'rgba(255,255,0,.15)' },
+            { from: 100, to: 150, color: 'rgba(255,30,0,.25)' },
+            { from: 150, to: 200, color: 'rgba(255,0,225,.25)' },
+            { from: 200, to: 220, color: 'rgba(0,0,255,.25)' }
+        ],
+        colorPlate: '#222',
+        colorMajorTicks: '#f5f5f5',
+        colorMinorTicks: '#ddd',
+        colorTitle: '#fff',
+        colorUnits: '#ccc',
+        colorNumbers: '#eee',
+        colorNeedle: 'rgba(240, 128, 128, 1)',
+        colorNeedleEnd: 'rgba(255, 160, 122, .9)',
+        valueBox: true,
+        animationDuration: 100
+    }).draw();
+
+    var bearingGauge = new RadialGauge({
+        dataMinValue:0,
+        dataMaxValue:360,
+        renderTo: 'bearingGauge',
+        width: 200,
+        height: 200,
+        title: false,
+        value: 0,
+        minValue: 0,
+        maxValue: 360,
+        majorTicks: [
+            'N','NE','E','SE','S','SW','W','NW','N'
+        ],
+        minorTicks: 22,
+        colorPlate: '#222',
+        colorMajorTicks: '#f5f5f5',
+        colorMinorTicks: '#ddd',
+        ticksAngle: 360,
+        startAngle: 180,
+        highlights: false,
+        colorPlate: '#222',
+        colorMajorTicks: '#f5f5f5',
+        colorMinorTicks: '#ddd',
+        colorNumbers: '#ccc',
+        colorNeedle: 'rgba(240, 128, 128, 1)',
+        colorNeedleEnd: 'rgba(255, 160, 122, .9)',
+        valueBox: false,
+        valueTextShadow: false,
+        colorCircleInner: "#fff",
+        colorNeedleCircleOuter: "#ccc",
+        needleCircleSize: 15,
+        needleCircleOuter: false,
+        needleType:'line',
+        needleStart:75,
+        needleEnd: 99,
+        needleWidth: 5,
+        borders: true,
+        borderInnerWidth: 0,
+        borderMiddleWidth: 0,
+        borderOuterWidth: 10,
+        colorBorderOuter: '#ccc',
+        colorBorderOuterEnd: '#ccc',
+        colorNeedleShadowDown: '#222',
+        borderShadowWidth: 0,
+        animationRule:"linear",
+        animationDuration:100
+    }).draw();
+
+    speedGauge.value = 0;
+    bearingGauge.value = 0;
+
+    var context = $('#pitchView')[0].getContext('2d');
+    
+    showVehicleOrientation(rows[0]);
+
+    $("#range").attr('max', rows.length);
+    $("#range").val(0);
+
+    $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[0][12]) * 1000)) + "&nbsp;[0:0:0]");
+
+    var slider = document.getElementById("range");
+    bearingGauge.value = 0;
+    let timerId = null;
+    var speed = 0;
+    var bearing = 0;
+    
+    slider.oninput = function() {
+
+        if (this.value < rows.length) {
+            
+            currentLatLng = {
+                latitude : rows[this.value][6],
+                longitude : rows[this.value][7]
+            };
+
+            var sample = rows.length >= 10000 ? 1000 : 10;
+
+            var totalSeconds = Math.trunc(rows[this.value][12]) - Math.trunc(rows[0][12]);
+            var hours = Math.floor(totalSeconds / 3600);
+            totalSeconds %= 3600;
+            var minutes = Math.floor(totalSeconds / 60);
+            seconds = totalSeconds % 60;
+
+            $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[this.value][12]) * 1000)) + "&nbsp;[" + 
+                    hours + ":" + minutes + ":" + seconds + "] - [Observation&nbsp;:&nbsp;" + this.value + "&nbsp;]");
+            speed = parseFloat(rows[this.value][11]);
+            bearing = Math.trunc(rows[this.value][1]);
+
+            if (timerId == null) { 
+                timerId = setTimeout(function() {
+                    speedGauge.value = speed;
+                    console.log('Bearing: ' + bearing);
+
+                    bearingGauge.value = bearing;
+
+                    bearingGauge.draw();
+                    speedGauge.draw();
+                    
+                    timerId = null;
+
+                }, 200);
+            
+            }
+
+            showVehicleOrientation(rows[this.value]);
+
+        }
+
+    }
+    
+}
+
+/**
+ * The row to process
+ * @param {*} row the famos row to process
+ */
+function showVehicleOrientation(row) {
+    var pitch = calculatePitch(row[14], row[15], row[16]);
+    var contextPitch = $('#pitchView')[0].getContext('2d');
+    
+    showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100,);
+    $('#pitchLabel').html('<b>Pitch:</b>&nbsp;' + ((pitch * 100).toFixed(3)) + '&deg;');
+
+    var roll = calculateRoll(row[14], row[15], row[16]);
+    var contextRoll = $('#rollView')[0].getContext('2d');
+    
+    showRotatedImage($('#rollView')[0], contextRoll, imageVehicleFront, roll * 100);
+    $('#rollLabel').html('<b>Roll:</b>&nbsp;' + ((roll * 100).toFixed(3)) + '&deg;');
+
+}
+
+/**
  * Create a swiper control
  * @return the newly constructed swiper control
  * 
@@ -510,7 +680,7 @@ function generateSlide(name, timestamp) {
         " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
         name + "</label>" +
         "<div id='" + name + '-' + timestamp + 
-        "' style='position:absolute: left:0px; right:0px; bottom:0px; height:5px; margin-bottom:-4px; margin-left:-2px; margin-right:-2px;'><p></p></div>" +
+        "' style='position:absolute: left:0px; right:0px; bottom:0px; height:5px; margin-bottom:-4px; margin-left:-3px; margin-right:-3px;'><p></p></div>" +
         "</div>" +
     "</div>";
 
@@ -538,7 +708,8 @@ function display(columns, rows) {
       $('#tab1').addClass('active');
 
       showCharts(columns, rows);
-      
+      showGauges(columns, rows);
+
       console.log('completed conversion');
 
   }, 100);
@@ -688,6 +859,12 @@ $(document).ready(function() {
       
     }
 
+    imageVehicleSide = new Image();
+    imageVehicleSide.src = imageVehicleSideURL;
+
+    imageVehicleFront = new Image();
+    imageVehicleFront.src = imageVehicleFrontURL;
+ 
     $('#folders').bind('click', (e) => {
 
         buildMenu(folders);
