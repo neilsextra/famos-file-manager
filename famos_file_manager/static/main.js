@@ -422,6 +422,13 @@ function showCharts(columns, rows) {
 
     });
 
+    
+    $('#details').html('<b>Start Time: </b><p/>' + (new Date(Math.trunc(rows[0][12]) * 1000)) +
+    '<p/><b>Finish Time: </b><p/>' + (new Date(Math.trunc(rows[count - 1][12]) * 1000)) +
+    '<p/><b>Average Speed: </b><p/>' + ((totalSpeed/rows.length).toFixed(2)) + "&nbsp;kph" +
+    '<p/><b>Top Speed: </b><p/>' + (topSpeed.toFixed(2)) + "&nbsp;kph" +
+    '<p/><b>Distance Travelled: </b><p/>' + ((distanceKms).toFixed(2)) + "&nbsp;kms");
+
 }
 
 /**
