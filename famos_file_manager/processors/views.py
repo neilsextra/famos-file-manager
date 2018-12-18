@@ -20,6 +20,8 @@ from os import environ
 from struct import unpack, pack
 from azure.storage.blob import BlockBlobService, PublicAccess
 
+views = Blueprint('views', __name__, template_folder='templates')
+
 class FamosParser:
   def __init__(__self):
      __self.__data = []
@@ -252,7 +254,7 @@ def storeFiles(content, folder, fileNames, start_time, summary, buffers):
    app.logger.info('Upload Completed')
    return
 
-@app.route("/")
+@views.route("/")
 def home():
     return render_template("main.html")
 

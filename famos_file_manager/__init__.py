@@ -1,12 +1,14 @@
-from flask import Flask  # Import the Flask class
+from flask import Flask, render_template
 from flask_bower import Bower
+from famos_file_manager.processors.views import views
 
 print('Creating', __name__)
+
 app = Flask(__name__)    # Create an instance of the class for our use
+              # Added Bower
 
-Bower(app)               # Added Bower
+Bower(app) 
 
-print('Added Bower to', __name__)
+app.register_blueprint(views)
 
-def wsgi_app(config):
-    return app
+wsgi_app = app.wsgi_app
