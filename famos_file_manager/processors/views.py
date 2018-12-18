@@ -259,33 +259,42 @@ def home():
 
 @views.route("/list", methods=["GET"])
 def list():
-   configuration = getConfiguration()
-
-   block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
-                                         account_key=configuration['account_key'], 
-                                         socket_timeout=configuration['socket_timeout'])
-
-   block_blob_service.create_container(configuration['container_name']) 
-
-   block_blob_service.set_container_acl(configuration['container_name'], public_access=PublicAccess.Container)
-   output = []
-
+   f = open("D:\\home\\LogFiles\\debug.log",'a')
    try:
+      f.write('Listing Files')
+      configuration = getConfiguration()
+
+      block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
+                                          account_key=configuration['account_key'], 
+                                          socket_timeout=configuration['socket_timeout'])
+
+      block_blob_service.create_container(configuration['container_name']) 
+
+      block_blob_service.set_container_acl(configuration['container_name'], public_access=PublicAccess.Container)
+      output = []
+
       blobs = block_blob_service.list_blobs(configuration['container_name'])
-   except:
-      return json.dumps(output)
 
-   for blob in blobs:
-      if (re.match("(.*)\/(.*)\/(summary\.json)$", blob.name,  re.DOTALL)):
-          data = re.search("(.*)\/(.*)\/(summary\.json)$", blob.name, re.DOTALL)
-          output.append({
-             "summary_file": blob.name,
-             "folder": data.group(1),
-             "start_time": data.group(2)
-          })
-    
-   return json.dumps(output, sort_keys=True)
 
+      for blob in blobs:
+         if (re.match("(.*)\/(.*)\/(summary\.json)$", blob.name,  re.DOTALL)):
+            data = re.search("(.*)\/(.*)\/(summary\.json)$", blob.name, re.DOTALL)
+            output.append({
+               "summary_file": blob.name,
+               "folder": data.group(1),
+               "start_time": data.group(2)
+            })
+      
+      f.close()
+
+      return json.dumps(output, sort_keys=True)
+
+   except Exception as e:
+      f.write(str(e))
+      f.write('\n')
+      f.flush()
+      f.close()
+      return ""
 
 @views.route("/retrieve", methods=["GET"])
 def retrieve():
