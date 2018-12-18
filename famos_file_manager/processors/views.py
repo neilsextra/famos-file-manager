@@ -14,6 +14,7 @@ import zlib
 from zipfile import ZipFile
 import json
 import threading
+import datetime
 from os import environ
 
 from struct import unpack, pack
@@ -253,15 +254,22 @@ def storeFiles(content, folder, fileNames, start_time, summary, buffers):
    app.logger.info('Upload Completed')
    return
 
+def log(f, message):
+   f.write(datetime.datetime.now())
+   f.write(' : ')
+   f.write(message)
+   f.write('\n')
+   f.flush()
+
 @views.route("/")
 def home():
-    return render_template("main.html")
+   return render_template("main.html")
 
 @views.route("/list", methods=["GET"])
 def list():
    f = open("D:\\home\\LogFiles\\debug.log",'a')
    try:
-      f.write('Listing Files')
+      log(f, 'Listing Files')
       configuration = getConfiguration()
 
       block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
@@ -290,9 +298,8 @@ def list():
       return json.dumps(output, sort_keys=True)
 
    except Exception as e:
-      f.write(str(e))
-      f.write('\n')
-      f.flush()
+      log(f, str(e))
+
       f.close()
       return ""
 
