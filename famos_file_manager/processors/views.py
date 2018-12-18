@@ -266,10 +266,13 @@ def home():
 
 @views.route("/list", methods=["GET"])
 def list():
-   f = open("debug.log",'a')
+   configuration = getConfiguration()
+   
+   f = open(configuration['debug_file'], 'a')
+
    try:
       log(f, 'Listing Files')
-      configuration = getConfiguration()
+
 
       block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
                                           account_key=configuration['account_key'], 
@@ -328,12 +331,9 @@ def retrieve():
 def upload():
    configuration = getConfiguration()
 
-   f = open("debug.log",'a')
+   f = open(configuration['debug_file'], 'a')
 
    log(f, 'Uploading')
- 
-   configuration = getConfiguration()
-
    f.write('started\n')
 
    matrix = []
