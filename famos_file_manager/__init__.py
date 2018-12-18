@@ -5,8 +5,7 @@ from famos_file_manager.processors.views import views
 print('Creating', __name__)
 
 app = Flask(__name__)    # Create an instance of the class for our use
-              # Added Bower
-
+        
 Bower(app) 
 
 app.register_blueprint(views)

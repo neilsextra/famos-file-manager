@@ -258,7 +258,7 @@ def storeFiles(content, folder, fileNames, start_time, summary, buffers):
 def home():
     return render_template("main.html")
 
-@app.route("/list", methods=["GET"])
+@views.route("/list", methods=["GET"])
 def list():
    configuration = getConfiguration()
 
@@ -288,7 +288,7 @@ def list():
    return json.dumps(output, sort_keys=True)
 
 
-@app.route("/retrieve", methods=["GET"])
+@views.route("/retrieve", methods=["GET"])
 def retrieve():
    timestamp = request.args.get('timestamp')
    name = request.args.get('name')
@@ -310,7 +310,7 @@ def retrieve():
 
    return content
 
-@app.route("/upload", methods=["POST"])
+@views.route("/upload", methods=["POST"])
 def upload():
    configuration = getConfiguration()
 
