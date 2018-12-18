@@ -48,7 +48,7 @@ class FamosParser:
 
      if packed == None:
         print('completed')
-        return;
+        return
 
      id = packed.group(1)
      content = packed.group(2) 
