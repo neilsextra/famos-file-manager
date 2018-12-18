@@ -251,11 +251,10 @@ def storeFiles(content, folder, fileNames, start_time, summary, buffers):
                                               io.BytesIO(summary.encode()))
 
    print('Upload Completed')
-   app.logger.info('Upload Completed')
    return
 
 def log(f, message):
-   f.write(datetime.datetime.now())
+   f.write(str(datetime.datetime.now()))
    f.write(' : ')
    f.write(message)
    f.write('\n')
@@ -267,7 +266,7 @@ def home():
 
 @views.route("/list", methods=["GET"])
 def list():
-   f = open("D:\\home\\LogFiles\\debug.log",'a')
+   f = open("debug.log",'a')
    try:
       log(f, 'Listing Files')
       configuration = getConfiguration()
@@ -362,8 +361,6 @@ def upload():
             folder = parts.group(1)
 
          processedFiles.append(name)
-
-         app.logger.info('Processing', name)
 
          content = input_zip.read(name)
        
