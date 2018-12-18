@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request
-from . import app
 import binascii
 import ctypes
 import random
