@@ -266,7 +266,7 @@ def home():
 
 @views.route("/list", methods=["GET"])
 def list():
-   f = open("debug.log",'a')
+   f = open("D:\\home\\LogFiles\\debug.log",'a')
    try:
       log(f, 'Listing Files')
       configuration = getConfiguration()
