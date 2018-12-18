@@ -326,9 +326,12 @@ def retrieve():
 
 @views.route("/upload", methods=["POST"])
 def upload():
+   f = open("D:\\home\\LogFiles\\debug.log",'a')
+
+   log(f, 'Uploading')
+ 
    configuration = getConfiguration()
 
-   f = open(configuration.debug_file, 'a') 
    f.write('started\n')
 
    matrix = []
@@ -351,7 +354,7 @@ def upload():
       input_zip = ZipFile(request.files.get(uploadFile))
          
       for name in input_zip.namelist():
-         f.write('saving: ' + name + '\n')
+         log(f, name)
  
          if (not name.endswith('.raw')):
             continue
@@ -414,7 +417,6 @@ def upload():
    summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
                           "files": processedFiles}, sort_keys=True)
-   f.write('started thread\n')
    f.close() 
    thread = threading.Thread(name='storefiles', target=storeFiles, args=(content, folder, fileNames, start_time, summary, buffers))
    thread.setDaemon(True)
