@@ -44,7 +44,7 @@ class FamosParser:
      __self.__buffer = None 
 
   def process(__self, data):
-     packed = __self.__regex.match(data);
+     packed = __self.__regex.match(data)
 
      if packed == None:
         print('completed')
@@ -333,9 +333,8 @@ def upload():
 
    f = open(configuration['debug_file'], 'a')
 
-   log(f, 'Uploading')
-   f.write('started\n')
-
+   log(f, 'Uploading Files')
+   
    matrix = []
    titles = []
    types = []
