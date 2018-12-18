@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, Blueprint, render_template, request
 import binascii
 import ctypes
 import random
