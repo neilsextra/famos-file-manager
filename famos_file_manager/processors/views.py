@@ -266,7 +266,7 @@ def home():
 
 @views.route("/list", methods=["GET"])
 def list():
-   f = open("D:\\home\\LogFiles\\debug.log",'a')
+   f = open("debug.log",'a')
    try:
       log(f, 'Listing Files')
       configuration = getConfiguration()
@@ -326,7 +326,9 @@ def retrieve():
 
 @views.route("/upload", methods=["POST"])
 def upload():
-   f = open("D:\\home\\LogFiles\\debug.log",'a')
+   configuration = getConfiguration()
+
+   f = open("debug.log",'a')
 
    log(f, 'Uploading')
  

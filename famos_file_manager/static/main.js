@@ -935,7 +935,7 @@ $(document).ready(function() {
     function processFiles(files) {
 
         $('#waitDialog').css('display', 'inline-block');
-
+ 
         var zip = JSZip();
         var folder = '';
 
@@ -950,20 +950,25 @@ $(document).ready(function() {
         }
 
         zip.generateAsync({type: "uint8array"}).then(function (data) {
-
             postData(folder, data);
-
+ 
         });
 
-        
     }
 
     function postData(folder, data) {
-        var zipFile = new File([data], 'famos.zip')
+        var zipFile = null;
+  
+        try {
+            zipFile = new File([data], 'famos.zip');
+        } catch (e) {
+           zipFile = new Blob([data], 'famos.zip'); 
+        }
+
         var formData = new FormData();
 
        formData.append('famos.zip', zipFile);
-        
+       
         $.ajax({
             url: '/upload',
             type: 'POST',
