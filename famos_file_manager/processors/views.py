@@ -219,14 +219,14 @@ def getConfiguration():
       'debug_file': debug_file
    }   
 
-def storeFiles(content, folder, fileNames, start_time, summary, buffers):
+def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
    configuration = getConfiguration()
 
    if (folder == None):
       folder = configuration['container_name']
    
-   print('Account Name: ', configuration['account_name'])
-   print('Container Name: ', configuration['container_name'])
+   log(f, 'Account Name: ' + configuration['account_name'])
+   log(f, 'Container Name: ' + configuration['container_name'])
 
    block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
                                          account_key=configuration['account_key'], 
@@ -419,7 +419,7 @@ def upload():
                           "titles": titles, "types":types,
                           "files": processedFiles}, sort_keys=True)
    f.close() 
-   thread = threading.Thread(name='storefiles', target=storeFiles, args=(content, folder, fileNames, start_time, summary, buffers))
+   thread = threading.Thread(name='storefiles', target=storeFiles, args=(f, content, folder, fileNames, start_time, summary, buffers))
    thread.setDaemon(True)
    thread.start()
 

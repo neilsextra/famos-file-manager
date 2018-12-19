@@ -938,6 +938,8 @@ $(document).ready(function() {
  
         var zip = JSZip();
         var folder = '';
+        
+        console.log('zipping files');
 
         for (var iFile = 0; iFile < files.length; iFile++) {             
             var f = files[iFile];
@@ -958,7 +960,9 @@ $(document).ready(function() {
 
     function postData(folder, data) {
         var zipFile = null;
-  
+        
+        console.log('posting data');
+
         try {
             zipFile = new File([data], 'famos.zip');
         } catch (e) {
@@ -983,12 +987,14 @@ $(document).ready(function() {
                     xhr.upload.addEventListener('progress', function (event) {
                         if (event.lengthComputable) {
                             var percentComplete = event.loaded / event.total;
+                            console.log(`Percentage: ${percentComplete}`);
+
                         }
                         
                     }, false);
 
                     xhr.upload.addEventListener('load', function (event) {
-                        $('#percentage').html('Loaded');                        
+                        console.log('Loaded');                        
                     }, false);
 
                     return xhr;
@@ -996,16 +1002,10 @@ $(document).ready(function() {
                 },
                 error: function (err) {
                     $('#waitDialog').css('display', 'none');  
-                    
+                    console.log('Error: [' + err.status + '] - \'' + err.statusText + '\''); 
+                  
                     alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
 
-                    var notification = new Notification("Error in upload", {
-                        dir: "auto",
-                        lang: "",
-                        body:'Error: [' + err.status + '] - \'' + err.statusText + '\'',
-                        tag: "Upload Error"
-
-                    });
                 },
                 success: function (result) {  
 
