@@ -275,7 +275,8 @@ def processFile(f, fileName):
    processedFiles = []
 
    input_zip = ZipFile(fileName, 'r')
-      
+   log(f, 'Processing (Zip) : ' + fileName)
+    
    for name in input_zip.namelist():
       log(f, 'Processing: ' + name)
 
@@ -350,7 +351,7 @@ def processFile(f, fileName):
       print(str(e))
 
    csvfile.close()
-
+   os.remove(fileName)
    return content
 
 def log(f, message):
@@ -408,7 +409,7 @@ def list():
 def retrieve():
    timestamp = request.args.get('timestamp')
    name = request.args.get('name')
-   
+
    configuration = getConfiguration()
    f = open(configuration['debug_file'], 'a')
    log(f, 'Retrieving - ' + name + '/' + timestamp)
@@ -459,6 +460,7 @@ def upload():
       with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
             temp_file_name = tmpfile.name
             print('TempFileName: ' + temp_file_name)
+            log(f, 'Upload allocated - ' + temp_file_name)
 
             with open(temp_file_name, 'ab') as temp:
 
@@ -478,4 +480,6 @@ def upload():
             "file_name" : tempFileName
          })
 
+   f.close()
+   
    return  json.dumps(output, sort_keys=True)
