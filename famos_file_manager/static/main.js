@@ -3,6 +3,7 @@
  * 
  */
 var slidesPerView = 6;
+var CHUNK_SIZE = 10000;
 
 /**
  * Globals
@@ -939,99 +940,139 @@ $(document).ready(function() {
         var zip = JSZip();
         var folder = '';
         
-        console.log('zipping files');
+       $('#waitMessage').text('Creating Zip Archive');
 
         for (var iFile = 0; iFile < files.length; iFile++) {             
             var f = files[iFile];
             zip.file(f.name, f);
+   
             if (f.name.startsWith('GPS.time.sec_BUSDAQ')) {
                 parts = /_([0-9]*)?(\.raw)/.exec(f.name);
                 folder = parts[1];
             }
                
         }
-
         zip.generateAsync({type: "uint8array"}).then(function (data) {
-            postData(folder, data);
- 
+            $('#waitMessage').text('All Files Zipped');
+            chunkData(folder, data);
         });
 
     }
 
-    function postData(folder, data) {
-        var zipFile = null;
-        
-        console.log('posting data');
+    function chunkData(folder, compressedData, currentChunk) {
+        var maxChunks = Math.floor(compressedData.length / CHUNK_SIZE)
+  
+        $('#waitMessage').text('Chunking Data : ' + compressedData.length);
 
-        try {
-            zipFile = new File([data], 'famos.zip');
-        } catch (e) {
-           zipFile = new Blob([data], 'famos.zip'); 
-        }
+        sendData(folder, compressedData, maxChunks).then(function(result) {
+            $('#waitMessage').text('Processing Data : ' + compressedData.length);
 
-        var formData = new FormData();
+            var parameters = {
+                file_name: result
+            };
 
-       formData.append('famos.zip', zipFile);
-       
-        $.ajax({
-            url: '/upload',
-            type: 'POST',
-            maxChunkSize: 10000,
-            contentType: false,
-            processData: false,
-            async: true,
-            data: formData,
-                xhr: function() {
-                    var xhr = $.ajaxSettings.xhr();
+            $.get('/process', parameters, function(data) {
 
-                    xhr.upload.addEventListener('progress', function (event) {
-                        if (event.lengthComputable) {
-                            var percentComplete = event.loaded / event.total;
-                            console.log(`Percentage: ${percentComplete}`);
+                displayResults(data, function(columns, rows) {
+                    var slide = generateSlide(folder, Math.trunc(rows[0][12]));
 
-                        }
+                    swiper.prependSlide([slide]);
+
+                    $('#' + selected).css('background-color', '');
+                    $('#' + folder + '-' + Math.trunc(rows[0][12])).css('background-color', 'orange');
+                    
+                    selected =  folder + '-' + Math.trunc(rows[0][12]);
+                                
+                    if ($.inArray($('#folder').text(), folders) === -1) {
+
+                        folders.push($('#folder').text());
                         
-                    }, false);
+                    }       
 
-                    xhr.upload.addEventListener('load', function (event) {
-                        console.log('Loaded');                        
-                    }, false);
-
-                    return xhr;
-
-                },
-                error: function (err) {
+                    $('#waitMessage').text('');
                     $('#waitDialog').css('display', 'none');  
-                    console.log('Error: [' + err.status + '] - \'' + err.statusText + '\''); 
-                  
-                    alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
+            
+                });  
+            
+            });
 
-                },
-                success: function (result) {  
-
-                    displayResults(result, function(columns, rows) {
-                        var slide = generateSlide(folder, Math.trunc(rows[0][12]));
-
-                        swiper.prependSlide([slide]);
-
-                        $('#' + selected).css('background-color', '');
-                        $('#' + folder + '-' + Math.trunc(rows[0][12])).css('background-color', 'orange');
-                        
-                        selected =  folder + '-' + Math.trunc(rows[0][12]);
-                                      
-                        if ($.inArray($('#folder').text(), folders) === -1) {
-
-                            folders.push($('#folder').text());
-                            
-                        }         
-
-                        $('#waitDialog').css('display', 'none');  
-
-                    });
-
-                }
         });
 
-    } 
+    }
 
-});
+    async function sendData(folder, compressedData, maxChunks) {
+        var currentChunk = 0;
+        var fileName = '';
+        
+        for (var iChunk=0, len = compressedData.length; iChunk<len; iChunk += CHUNK_SIZE) {   
+            var chunk = compressedData.slice(iChunk, iChunk + CHUNK_SIZE); 
+            var result = await postData(folder, chunk, currentChunk, maxChunks, fileName);
+
+            if (fileName == '') {
+                fileName = JSON.parse(result)[0]['file_name'];
+            }
+              
+            console.log('Uploaded  - ' + currentChunk + "/" + maxChunks + ":" + JSON.parse(result)[0]['file_name']);
+
+            currentChunk += 1;
+
+        }
+
+        return fileName;
+
+    }
+   
+    function postData(folder, chunk, currentChunk, maxChunks, tempFileName) {    
+            var zipFile = null;
+            var fileName = `chunck_${currentChunk}_${maxChunks}.zip`
+   
+            try {
+                zipFile = new File([chunk], fileName);
+            } catch (e) {
+                zipFile = new Blob([chunk], fileName); 
+            }
+
+            var formData = new FormData();
+            formData.append('file_name', tempFileName);
+            formData.append(fileName, zipFile);
+        
+            return new Promise(resolve => {$.ajax({
+                url: '/upload',
+                type: 'POST',
+                maxChunkSize: 10000,
+                contentType: false,
+                processData: false,
+                async: true,
+                data: formData,
+                    xhr: function() {
+                        var xhr = $.ajaxSettings.xhr();
+
+                        xhr.upload.addEventListener('progress', function (event) {
+                            if (event.lengthComputable) {
+                                var percentComplete = event.loaded / event.total;                          }
+                        }, false);
+
+                        xhr.upload.addEventListener('load', function (event) {
+                        }, false);
+
+                        return xhr;
+
+                    },
+                    error: function (err) {
+                        console.log('Error: [' + err.status + '] - \'' + err.statusText + '\''); 
+                        alert('Error: [' + err.status + '] - \'' + err.statusText + '\'');
+                        resolve(err);
+
+                    },
+                    success: function (result) {  
+                        $('#waitMessage').text('Sending  - ' + currentChunk + "/" + maxChunks);
+ 
+                        resolve(result);
+     
+                    }
+                });
+
+            });
+        }
+
+        });

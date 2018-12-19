@@ -16,6 +16,7 @@ import json
 import threading
 import datetime
 from os import environ
+import tempfile
 
 from struct import unpack, pack
 from azure.storage.blob import BlockBlobService, PublicAccess
@@ -190,6 +191,7 @@ def getConfiguration():
       save_files = config.SAVE_FILES
       socket_timeout = config.SOCKET_TIMEOUT
       debug_file = config.DEBUG_FILE
+      data_dir = config.DATA_DIR
 
    except ImportError:
       pass
@@ -208,6 +210,7 @@ def getConfiguration():
    save_files = environ.get('SAVE_FILES', save_files)
    socket_timeout = environ.get('SOCKET_TIMEOUT', socket_timeout)
    debug_file = environ.get('DEBUG_FILE', debug_file)
+   data_dir = environ.get('DATA_DIR', data_dir)
 
    return {
       "account_key": account_key,
@@ -216,15 +219,14 @@ def getConfiguration():
       'default_folder_name': default_folder_name,
       'save_files': save_files,
       'socket_timeout': socket_timeout,
-      'debug_file': debug_file
+      'debug_file': debug_file,
+      'data_dir': data_dir
    }   
 
 def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
    configuration = getConfiguration()
-
-   if (folder == None):
-      folder = configuration['container_name']
-   
+   print('inside storefiles' + folder)
+  
    log(f, 'Account Name: ' + configuration['account_name'])
    log(f, 'Container Name: ' + configuration['container_name'])
 
@@ -238,7 +240,7 @@ def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
 
    if configuration['save_files'] == 'true':
       for iBuffer, buffer in enumerate(buffers):    
-         print(fileNames[iBuffer])
+         log(f, 'Storing: ' + fileNames[iBuffer])
          block_blob_service.create_blob_from_stream(configuration['container_name'], 
                                                     folder + '/' + start_time + '/' +
                                                     fileNames[iBuffer] + '.gz', 
@@ -250,8 +252,106 @@ def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
    block_blob_service.create_blob_from_stream(configuration['container_name'],  folder + '/' + start_time + '/summary.json',
                                               io.BytesIO(summary.encode()))
 
+   log(f, 'Upload Complete')
    print('Upload Completed')
+   
+   f.close()
+
    return
+
+def processFile(f, fileName):
+   matrix = []
+   titles = []
+   types = []
+   sizes = []
+   buffers = []
+   fileNames = []
+
+   folder = "unknown"
+
+   start_time = 0 
+   stop_time = 0 
+
+   processedFiles = []
+
+   input_zip = ZipFile(fileName, 'r')
+      
+   for name in input_zip.namelist():
+      log(f, 'Processing: ' + name)
+
+      if (not name.endswith('.raw')):
+         continue
+
+      if (name.startswith('GPS.time.sec_BUSDAQ')):
+         parts = re.search("_([0-9]*)?(\.raw)", name, re.DOTALL)
+         folder = parts.group(1)
+
+      processedFiles.append(name)
+
+      content = input_zip.read(name)
+      
+      parser = FamosParser()
+      parser.parse(content)
+
+      data = parser.getData()
+
+      if len(data) > 0:
+         sizes.append(len(data))
+         matrix.append(data)
+         types.append(parser.getType())
+         titles.append(parser.getTitle())
+         buffers.append(parser.getBuffer())
+         fileNames.append(name)
+
+         if (parser.getType() == '52'):
+            start_time = re.sub(r'\..*', '', data[0])
+            stop_time = re.sub(r'\..*', '', data[len(data) - 1])
+      
+   minSize = min(sizes)
+   maxSize = max(sizes)
+
+   sampleSize = int(maxSize/minSize)
+   csvfile = io.StringIO()
+   famosWriter = csv.writer(csvfile, delimiter=',',
+                                     quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+   famosWriter.writerow(titles)
+
+   iRow = 0
+   iSample = 0
+
+   while iRow < minSize:
+      iColumn = 0
+      row = []
+      while iColumn < len(matrix): 
+         if (sizes[iColumn] == minSize):
+            row.append(matrix[iColumn][iRow])
+         else:
+            row.append(matrix[iColumn][iSample])
+    
+         iColumn += 1
+
+      iRow += 1
+      iSample = iSample + sampleSize if (iSample + sampleSize) < minSize else iRow
+
+      famosWriter.writerow(row)
+
+   content = csvfile.getvalue()
+   summary = json.dumps({"start": start_time, "stop": stop_time, 
+                          "titles": titles, "types":types,
+                          "files": processedFiles}, sort_keys=True)
+
+   try: 
+      thread = threading.Thread(name='storefiles', target=storeFiles, args=(f, content, folder, fileNames, start_time, summary, buffers))
+      thread.setDaemon(True)
+      thread.start()
+   except Exception as e:
+      log(f, str(e))
+      print(str(e))
+
+   csvfile.close()
+
+   return content
 
 def log(f, message):
    f.write(str(datetime.datetime.now()))
@@ -271,8 +371,7 @@ def list():
    f = open(configuration['debug_file'], 'a')
 
    try:
-      log(f, 'Listing Files')
-
+      log(f, 'Listing Files - request received')
 
       block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
                                           account_key=configuration['account_key'], 
@@ -309,8 +408,10 @@ def list():
 def retrieve():
    timestamp = request.args.get('timestamp')
    name = request.args.get('name')
-
-   print(timestamp, name)
+   
+   configuration = getConfiguration()
+   f = open(configuration['debug_file'], 'a')
+   log(f, 'Retrieving - ' + name + '/' + timestamp)
 
    configuration = getConfiguration()
 
@@ -327,102 +428,54 @@ def retrieve():
 
    return content
 
+@views.route("/process", methods=["GET"])
+def process():
+   
+   configuration = getConfiguration()
+   f = open(configuration['debug_file'], 'a')
+  
+   filename = request.args.get('file_name')
+
+   return processFile(f, filename)
+
 @views.route("/upload", methods=["POST"])
 def upload():
    configuration = getConfiguration()
 
+   tempFileName = request.values.get('file_name')
    f = open(configuration['debug_file'], 'a')
-
-   log(f, 'Uploading Files')
    
-   matrix = []
-   titles = []
-   types = []
-   sizes = []
-   buffers = []
-   fileNames = []
-
-   folder = "unknown"
-
-   start_time = 0 
-   stop_time = 0 
-
-   processedFiles = []
    uploadedFiles = request.files
+   
+   fileContent = None
 
    for uploadFile in uploadedFiles:
-
-      input_zip = ZipFile(request.files.get(uploadFile))
-         
-      for name in input_zip.namelist():
-         log(f, name)
- 
-         if (not name.endswith('.raw')):
-            continue
-
-         if (name.startswith('GPS.time.sec_BUSDAQ')):
-            parts = re.search("_([0-9]*)?(\.raw)", name, re.DOTALL)
-            folder = parts.group(1)
-
-         processedFiles.append(name)
-
-         content = input_zip.read(name)
-       
-         parser = FamosParser()
-         parser.parse(content)
-
-         data = parser.getData()
-
-         if len(data) > 0:
-            sizes.append(len(data))
-            matrix.append(data)
-            types.append(parser.getType())
-            titles.append(parser.getTitle())
-            buffers.append(parser.getBuffer())
-            fileNames.append(name)
-
-            if (parser.getType() == '52'):
-               start_time = re.sub(r'\..*', '', data[0])
-               stop_time = re.sub(r'\..*', '', data[len(data) - 1])
-        
-   minSize = min(sizes)
-   maxSize = max(sizes)
-
-   sampleSize = int(maxSize/minSize)
-   csvfile = io.StringIO()
-   famosWriter = csv.writer(csvfile, delimiter=',',
-                                     quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-   famosWriter.writerow(titles)
-
-   iRow = 0
-   iSample = 0
-
-   while iRow < minSize:
-      iColumn = 0
-      row = []
-      while iColumn < len(matrix): 
-         if (sizes[iColumn] == minSize):
-            row.append(matrix[iColumn][iRow])
-         else:
-            row.append(matrix[iColumn][iSample])
-    
-         iColumn += 1
-
-      iRow += 1
-      iSample = iSample + sampleSize if (iSample + sampleSize) < minSize else iRow
-
-      famosWriter.writerow(row)
-
-   content = csvfile.getvalue()
-   summary = json.dumps({"start": start_time, "stop": stop_time, 
-                          "titles": titles, "types":types,
-                          "files": processedFiles}, sort_keys=True)
-   f.close() 
-   thread = threading.Thread(name='storefiles', target=storeFiles, args=(f, content, folder, fileNames, start_time, summary, buffers))
-   thread.setDaemon(True)
-   thread.start()
-
-   csvfile.close()
+      fileName = uploadFile
+      fileContent = request.files.get(uploadFile)
    
-   return content
+   output = []
+
+   if (tempFileName == ''):
+      with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+            temp_file_name = tmpfile.name
+            print('TempFileName: ' + temp_file_name)
+
+            with open(temp_file_name, 'ab') as temp:
+
+               temp.write(fileContent.read())
+               temp.close()
+
+            output.append({
+               "file_name" : temp_file_name
+            })
+   else:
+      with open(tempFileName, 'ab') as temp:
+
+         temp.write(fileContent.read())
+         temp.close()
+
+         output.append({
+            "file_name" : tempFileName
+         })
+
+   return  json.dumps(output, sort_keys=True)
