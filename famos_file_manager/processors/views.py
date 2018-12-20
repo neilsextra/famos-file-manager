@@ -40,6 +40,7 @@ class FamosParser:
      __self.__offset = 0  
      __self.__directSeqNo = 0  
      __self.__intervalBytes = 0
+     __self.__interval = 100
      __self.__title = '' 
      __self.__type = None 
      __self.__count = 0  
@@ -55,121 +56,117 @@ class FamosParser:
 
    def process(__self, data):
 
-     packed = __self.__regex.match(data)
+      packed = __self.__regex.match(data)
 
-     if packed == None:
-        print('completed')
-        return
+      if packed == None:
+         return
 
-     id = packed.group(1)
-     content = packed.group(2) 
+      id = packed.group(1)
+      content = packed.group(2) 
 
-     if id == b'CF':
-        process = re.search(b"(.*?);(.*)", content, re.DOTALL)
-        m = re.search(b"([0-9]),([0-9]),([0-9]).*", process.group(1), re.DOTALL)
-        __self.__fileFormat = m.group(1).decode('utf-8')
-        __self.__keyLength = m.group(2).decode('utf-8')
-        __self.__processor = m.group(3).decode('utf-8')
+      if id == b'CF':
+         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
+         m = re.search(b"([0-9]),([0-9]),([0-9]).*", process.group(1), re.DOTALL)
+         __self.__fileFormat = m.group(1).decode('utf-8')
+         __self.__keyLength = m.group(2).decode('utf-8')
+         __self.__processor = m.group(3).decode('utf-8')
 
-        __self.process(process.group(2))
+         __self.process(process.group(2))
 
-     elif id == b'CP':
-        process = re.search(b"(.*?);(.*)", content, re.DOTALL)
-        m = re.search(b"([0-9]),([0-9]*?),([0-9]),([0-9]),([0-9]),([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),.*$", 
-                      process.group(1), re.DOTALL)
-        __self.__bufRef = m.group(3).decode('utf-8')
-        __self.__byteReqd = m.group(4).decode('utf-8')
-        __self.__numberFormat = m.group(5).decode('utf-8')
-        __self.__signBits = m.group(6).decode('utf-8')
-        __self.__offset = m.group(7).decode('utf-8')
-        __self.__directSeqNo = m.group(8).decode('utf-8')
-        __self.__intervalBytes = m.group(9).decode('utf-8')
+      elif id == b'CP':
+         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
+         m = re.search(b"([0-9]),([0-9]*?),([0-9]),([0-9]),([0-9]),([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),.*$", 
+                        process.group(1), re.DOTALL)
+         __self.__bufRef = m.group(3).decode('utf-8')
+         __self.__byteReqd = m.group(4).decode('utf-8')
+         __self.__numberFormat = m.group(5).decode('utf-8')
+         __self.__signBits = m.group(6).decode('utf-8')
+         __self.__offset = m.group(7).decode('utf-8')
+         __self.__directSeqNo = m.group(8).decode('utf-8')
+         __self.__intervalBytes = m.group(9).decode('utf-8')
 
-        __self.process(process.group(2))
+         __self.process(process.group(2))
 
 
-     elif id == b'CN':
-        process = re.search(b"(.*?);(.*)", content, re.DOTALL)
-        m = re.search(b"([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),([^,]*?),([0-9]*?),.*$", 
-                      process.group(1), re.DOTALL)
-        __self.__title = m.group(7).decode('ascii')
-        __self.__type = m.group(8).decode('ascii')
+      elif id == b'CN':
+         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
+         m = re.search(b"([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),([0-9]*?),([^,]*?),([0-9]*?),.*$", 
+                        process.group(1), re.DOTALL)
+         __self.__title = m.group(7).decode('ascii')
+         __self.__type = m.group(8).decode('ascii')
 
-        __self.process(process.group(2))
+         __self.process(process.group(2))
 
-     elif id == b'Cb':
-        process = re.search(b"(.*?);(.*)", content, re.DOTALL)
-        m = re.search(b"([0-9]*?),([0-9]*?),.*$", process.group(1), re.DOTALL)
+      elif id == b'Cb':
+         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
+         m = re.search(b"([0-9]*?),([0-9]*?),.*$", process.group(1), re.DOTALL)
 
-        __self.process(process.group(2))
+         __self.process(process.group(2))
 
      
-     elif id == b'CS':
-        result = __self.__dataX.match(content)
-  
-        arrayData = result.group(4)
+      elif id == b'CS':
+         result = __self.__dataX.match(content)
+   
+         arrayData = result.group(4)
 
-        values = bytearray(result.group(4))
+         values = bytearray(result.group(4))
 
-        __self.__count = 0         
-        c = 0 
-        p = 0
-        v = [] 
-        for b in values:
-           if (p == 4 and __self.__numberFormat in __self.__longFormats):
-              if __self.__numberFormat == '6':
-                 r = struct.unpack("i", b''.join(v))[0] 
-                 if (__self.__type in __self.__geoTypes):  
-                    r = r/10000000
-                 __self.__data.append('%.7f' % (r))
-              elif __self.__numberFormat == '7':
-                 r = struct.unpack("f", b''.join(v))[0] 
-                 __self.__data.append('%.7f' % (r))
+         __self.__count = 0         
+         c = 0 
+         p = 0
+         i = 0 
+         v = [] 
+         for b in values:
+            if (p == 4 and __self.__numberFormat in __self.__longFormats):
+               if __self.__numberFormat == '6':
+                  r = struct.unpack("i", b''.join(v))[0] 
+                  if (__self.__type in __self.__geoTypes):  
+                     r = r/10000000
+                  __self.__data.append('%.7f' % (r))
+               elif __self.__numberFormat == '7':
+                  r = struct.unpack("f", b''.join(v))[0] 
+                  __self.__data.append('%.7f' % (r))
 
-              __self.__count += 1         
-              p = 0
-              v = [] 
-
-           elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
-               r = struct.unpack(">h",  b''.join(v))[0] 
-               r = r/100000
-      #         __self.__data.append('%.7f' % (r))
-               __self.__count += 1      
-                  
-               __self.log('Count: ' + str(__self.__count))
-      
+               __self.__count += 1         
                p = 0
                v = [] 
 
-           v.append(b.to_bytes(1, byteorder='big')) 
-           p = p + 1
+            elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
+                  r = struct.unpack(">h",  b''.join(v))[0] 
+                  r = r/100000
 
-     else:
-        if (re.match(b"[^ \t].*$", content, re.DOTALL)):
-           m = re.search(b"[^ \t]+(.*)$", content, re.DOTALL)
-           content = m.group(1)
+                  if (i % __self.__interval == 0 or i == 0):
+                     __self.__data.append('%.7f' % (r))
+                     __self.__count += 1      
 
-        process = re.search(b"(.*?);(.*)", content, re.DOTALL)
-        __self.process(process.group(2))  
+                  i += 1               
+                  p = 0
+                  v = [] 
+
+            v.append(b.to_bytes(1, byteorder='big')) 
+            p = p + 1
+
+      else:
+         if (re.match(b"[^ \t].*$", content, re.DOTALL)):
+            m = re.search(b"[^ \t]+(.*)$", content, re.DOTALL)
+            content = m.group(1)
+
+      process = re.search(b"(.*?);(.*)", content, re.DOTALL)
+      __self.process(process.group(2))  
   
    def parse(__self, content):
      __self.__buffer = content
      __self.process(__self.__buffer)
 
    def summary(__self):
-     print('Title: ' + __self.__title, '[' + __self.__type + ']')
-     print('TY='+__self.__type, 
-           'FF='+__self.__fileFormat, 
-           'KL='+__self.__keyLength, 
-           'P='+__self.__processor, 
-           'BU='+__self.__bufRef, 
-           'BR='+__self.__byteReqd, 
-           'NF='+__self.__numberFormat, 
-           'SB='+__self.__signBits, 
-           'O='+__self.__offset, 
-           'DSN='+__self.__directSeqNo, 
-           'IB='+__self.__intervalBytes,
-           'LEN='+str(len(__self.__data)))
+      __self.log('Title: ' + __self.__title +  ' [' + __self.__type + ']')
+
+      output = 'TY={TY}, FF={FF}, KL={KL}, P={P}, BU={BU}, BR={BR}, NF={NF}, SB={SB}, O={O}, DSN={DSN} IB={IB}, LEN={LEN}'.format(
+        TY=__self.__type, FF=__self.__fileFormat, KL=__self.__keyLength, P=__self.__processor, BU=__self.__bufRef, BR=__self.__byteReqd,
+        NF=__self.__numberFormat, SB=__self.__signBits, O=__self.__offset, DSN=__self.__directSeqNo, IB=__self.__intervalBytes,
+        LEN=str(len(__self.__data)))
+
+      __self.log(output)
 
    def getData(__self):
      return __self.__data
@@ -304,6 +301,7 @@ def processFile(f, fileName):
       
       parser = FamosParser(f)
       parser.parse(content)
+      parser.summary()
 
       data = parser.getData()
 
@@ -349,6 +347,7 @@ def processFile(f, fileName):
       famosWriter.writerow(row)
 
    content = csvfile.getvalue()
+
    summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
                           "files": processedFiles}, sort_keys=True)
