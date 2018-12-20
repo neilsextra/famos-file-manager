@@ -25,7 +25,7 @@ from azure.storage.blob import BlockBlobService, PublicAccess
 views = Blueprint('views', __name__, template_folder='templates')
 
 class FamosParser:
-  def __init__(__self):
+   def __init__(__self, file):
      __self.__data = []
      __self.__regex = re.compile(b"\|(CF|CK|CG|NO|CD|NT|CC|CR|CN|CP|CS|Cb),(.*)", re.DOTALL)
      __self.__dataX = re.compile(b"([0-9]?)\,\s*([0-9]*?),\s*([0-9]*?),(.*)", re.DOTALL)
@@ -43,9 +43,20 @@ class FamosParser:
      __self.__title = '' 
      __self.__type = None 
      __self.__count = 0  
-     __self.__buffer = None 
+     __self.file = file 
+   
+   def log(__self, message):
 
-  def process(__self, data):
+       __self.file.write(str(datetime.datetime.now()))
+       __self.file.write(' : ')
+       __self.file.write(message)
+       __self.file.write('\n')
+       __self.file.flush()
+
+   def process(__self, data):
+
+     __self.log('Process')
+
      packed = __self.__regex.match(data)
 
      if packed == None:
@@ -122,12 +133,15 @@ class FamosParser:
               v = [] 
 
            elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
-              r = struct.unpack(">h",  b''.join(v))[0] 
-              r = r/100000
-              __self.__data.append('%.7f' % (r))
-              __self.__count += 1         
-              p = 0
-              v = [] 
+               r = struct.unpack(">h",  b''.join(v))[0] 
+               r = r/100000
+               __self.__data.append('%.7f' % (r))
+               __self.__count += 1      
+                  
+               __self.log('Count: ' + str(__self.__count))
+      
+               p = 0
+               v = [] 
 
            v.append(b.to_bytes(1, byteorder='big')) 
            p = p + 1
@@ -140,11 +154,11 @@ class FamosParser:
         process = re.search(b"(.*?);(.*)", content, re.DOTALL)
         __self.process(process.group(2))  
   
-  def parse(__self, content):
+   def parse(__self, content):
      __self.__buffer = content
      __self.process(__self.__buffer)
 
-  def summary(__self):
+   def summary(__self):
      print('Title: ' + __self.__title, '[' + __self.__type + ']')
      print('TY='+__self.__type, 
            'FF='+__self.__fileFormat, 
@@ -159,19 +173,19 @@ class FamosParser:
            'IB='+__self.__intervalBytes,
            'LEN='+str(len(__self.__data)))
 
-  def getData(__self):
+   def getData(__self):
      return __self.__data
 
-  def getType(__self):
+   def getType(__self):
      return __self.__type
 
-  def getTitle(__self):
+   def getTitle(__self):
      return __self.__title
 
-  def getCount(__self):
+   def getCount(__self):
      return __self.__count
 
-  def getBuffer(__self):
+   def getBuffer(__self):
      return __self.__buffer
 
 def getConfiguration():    
@@ -182,7 +196,7 @@ def getConfiguration():
    save_files = 'true'
    socket_timeout = None
    debug_file = None
- 
+
    try:
       import famos_file_manager.configuration as config
 
@@ -290,7 +304,7 @@ def processFile(f, fileName):
 
       content = input_zip.read(name)
       
-      parser = FamosParser()
+      parser = FamosParser(f)
       parser.parse(content)
 
       data = parser.getData()

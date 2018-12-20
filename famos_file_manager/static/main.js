@@ -959,7 +959,7 @@ $(document).ready(function() {
 
     }
 
-    function chunkData(folder, compressedData, currentChunk) {
+    function chunkData(folder, compressedData) {
         var maxChunks = Math.floor(compressedData.length / CHUNK_SIZE)
   
         $('#waitMessage').text('Chunking Data : ' + compressedData.length);
@@ -1075,4 +1075,4 @@ $(document).ready(function() {
             });
         }
 
-        });
+    });
