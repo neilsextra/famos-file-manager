@@ -16,6 +16,7 @@ import json
 import threading
 import datetime
 from os import environ
+import os
 import tempfile
 
 from struct import unpack, pack
@@ -225,7 +226,6 @@ def getConfiguration():
 
 def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
    configuration = getConfiguration()
-   print('inside storefiles' + folder)
   
    log(f, 'Account Name: ' + configuration['account_name'])
    log(f, 'Container Name: ' + configuration['container_name'])
@@ -253,7 +253,6 @@ def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
                                               io.BytesIO(summary.encode()))
 
    log(f, 'Upload Complete')
-   print('Upload Completed')
    
    f.close()
 
@@ -351,7 +350,9 @@ def processFile(f, fileName):
       print(str(e))
 
    csvfile.close()
+   input_zip.close()
    os.remove(fileName)
+   
    return content
 
 def log(f, message):
