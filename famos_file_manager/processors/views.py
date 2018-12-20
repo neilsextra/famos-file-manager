@@ -55,8 +55,6 @@ class FamosParser:
 
    def process(__self, data):
 
-     __self.log('Process')
-
      packed = __self.__regex.match(data)
 
      if packed == None:
@@ -135,7 +133,7 @@ class FamosParser:
            elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
                r = struct.unpack(">h",  b''.join(v))[0] 
                r = r/100000
-               __self.__data.append('%.7f' % (r))
+      #         __self.__data.append('%.7f' % (r))
                __self.__count += 1      
                   
                __self.log('Count: ' + str(__self.__count))
