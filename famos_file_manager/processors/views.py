@@ -146,7 +146,6 @@ class FamosParser:
                   i += 1               
                   p = 0
                   v = [] 
-            __self.log(str(__self.__count))
             v.append(b.to_bytes(1, byteorder='big')) 
             p = p + 1
 
