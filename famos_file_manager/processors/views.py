@@ -146,7 +146,7 @@ class FamosParser:
                   i += 1               
                   p = 0
                   v = [] 
-
+            __self.log(__self.__count)
             v.append(b.to_bytes(1, byteorder='big')) 
             p = p + 1
 
@@ -459,12 +459,18 @@ def retrieve():
 @views.route("/process", methods=["GET"])
 def process():
    
-   configuration = getConfiguration()
-   f = open(configuration['debug_file'], 'a')
-  
-   filename = request.args.get('file_name')
+   try:
+      configuration = getConfiguration()
+      f = open(configuration['debug_file'], 'a')
+   
+      filename = request.args.get('file_name')
 
-   return processFile(f, filename)
+      return processFile(f, filename)
+   except:
+      log(f, 'Error')
+      f.close()
+      return
+  
 
 @views.route("/upload", methods=["POST"])
 def upload():
