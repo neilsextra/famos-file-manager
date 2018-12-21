@@ -18,6 +18,7 @@ import datetime
 from os import environ
 import os
 import tempfile
+import numpy
 
 from struct import unpack, pack
 from azure.storage.blob import BlockBlobService, PublicAccess
@@ -26,7 +27,7 @@ views = Blueprint('views', __name__, template_folder='templates')
 
 class FamosParser:
    def __init__(__self, file):
-     __self.__data = []
+     __self.__data = numpy.array([])
      __self.__regex = re.compile(b"\|(CF|CK|CG|NO|CD|NT|CC|CR|CN|CP|CS|Cb),(.*)", re.DOTALL)
      __self.__dataX = re.compile(b"([0-9]?)\,\s*([0-9]*?),\s*([0-9]*?),(.*)", re.DOTALL)
      __self.__shortFormats = ['4']
@@ -107,8 +108,6 @@ class FamosParser:
       elif id == b'CS':
          result = __self.__dataX.match(content)
    
-         arrayData = result.group(4)
-
          values = bytearray(result.group(4))
 
          __self.__count = 0         
@@ -122,12 +121,13 @@ class FamosParser:
                   r = struct.unpack("i", b''.join(v))[0] 
                   if (__self.__type in __self.__geoTypes):  
                      r = r/10000000
-                  __self.__data.append('%.7f' % (r))
+                  __self.__data = numpy.append(__self.__data, r)
                elif __self.__numberFormat == '7':
                   r = struct.unpack("f", b''.join(v))[0] 
-                  __self.__data.append('%.7f' % (r))
+                  __self.__data = numpy.append(__self.__data, r)
+ 
+               __self.__count += 1   
 
-               __self.__count += 1         
                p = 0
                v = [] 
 
@@ -135,10 +135,14 @@ class FamosParser:
                   r = struct.unpack(">h",  b''.join(v))[0] 
                   r = r/100000
 
-                  if (i % __self.__interval == 0 or i == 0):
-                     __self.__data.append('%.7f' % (r))
-                     __self.__count += 1      
-
+                  if (__self.__title.startswith('Error')):
+                     if (i % 2 == 0 or i == 0):
+                        __self.__data = numpy.append(__self.__data, r)
+                        __self.__count += 1 
+                  elif (i % __self.__interval == 0 or i == 0):       
+                     __self.__data = numpy.append(__self.__data, r)
+                     __self.__count += 1 
+ 
                   i += 1               
                   p = 0
                   v = [] 
@@ -150,7 +154,7 @@ class FamosParser:
          if (re.match(b"[^ \t].*$", content, re.DOTALL)):
             m = re.search(b"[^ \t]+(.*)$", content, re.DOTALL)
             content = m.group(1)
-
+        
       process = re.search(b"(.*?);(.*)", content, re.DOTALL)
       __self.process(process.group(2))  
   
@@ -164,7 +168,7 @@ class FamosParser:
       output = 'TY={TY}, FF={FF}, KL={KL}, P={P}, BU={BU}, BR={BR}, NF={NF}, SB={SB}, O={O}, DSN={DSN} IB={IB}, LEN={LEN}'.format(
         TY=__self.__type, FF=__self.__fileFormat, KL=__self.__keyLength, P=__self.__processor, BU=__self.__bufRef, BR=__self.__byteReqd,
         NF=__self.__numberFormat, SB=__self.__signBits, O=__self.__offset, DSN=__self.__directSeqNo, IB=__self.__intervalBytes,
-        LEN=str(len(__self.__data)))
+        LEN=str(__self.__data.size))
 
       __self.log(output)
 
@@ -234,35 +238,46 @@ def getConfiguration():
    }   
 
 def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
-   configuration = getConfiguration()
-  
-   log(f, 'Account Name: ' + configuration['account_name'])
-   log(f, 'Container Name: ' + configuration['container_name'])
-
-   block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
-                                         account_key=configuration['account_key'], 
-                                         socket_timeout=configuration['socket_timeout'])
-
-   block_blob_service.create_container(configuration['container_name']) 
-
-   block_blob_service.set_container_acl(configuration['container_name'], public_access=PublicAccess.Container)
-
-   if configuration['save_files'] == 'true':
-      for iBuffer, buffer in enumerate(buffers):    
-         log(f, 'Storing: ' + fileNames[iBuffer])
-         block_blob_service.create_blob_from_stream(configuration['container_name'], 
-                                                    folder + '/' + start_time + '/' +
-                                                    fileNames[iBuffer] + '.gz', 
-                                                    io.BytesIO(zlib.compress(buffer)))
+   try:
+      configuration = getConfiguration()
    
-   block_blob_service.create_blob_from_stream(configuration['container_name'], folder + '/' + start_time + '/output.csv.gz',
-                                              io.BytesIO(zlib.compress(content.encode())))
-   
-   block_blob_service.create_blob_from_stream(configuration['container_name'],  folder + '/' + start_time + '/summary.json',
-                                              io.BytesIO(summary.encode()))
+      log(f, 'Account Name: ' + configuration['account_name'])
+      log(f, 'Container Name: ' + configuration['container_name'])
 
-   log(f, 'Upload Complete')
+      block_blob_service = BlockBlobService(account_name=configuration['account_name'], 
+                                          account_key=configuration['account_key'], 
+                                          socket_timeout=configuration['socket_timeout'])
+
+      block_blob_service.create_container(configuration['container_name']) 
+
+      block_blob_service.set_container_acl(configuration['container_name'], public_access=PublicAccess.Container)
+
+      if configuration['save_files'] == 'true':
+         for iBuffer, buffer in enumerate(buffers):    
+            log(f, 'Storing: ' + fileNames[iBuffer])
+            block_blob_service.create_blob_from_stream(configuration['container_name'], 
+                                                      folder + '/' + start_time + '/' +
+                                                      fileNames[iBuffer] + '.gz', 
+                                                      io.BytesIO(zlib.compress(buffer)))
+            log(f, 'Stored: ' + fileNames[iBuffer])
+      
+      log(f, 'Saving Files to Azure Storage')
    
+      block_blob_service.create_blob_from_stream(configuration['container_name'], folder + '/' + start_time + '/output.csv.gz',
+                                                io.BytesIO(zlib.compress(content.encode())))
+      
+      log(f, 'Saving Summary')
+
+      block_blob_service.create_blob_from_stream(configuration['container_name'],  folder + '/' + start_time + '/summary.json',
+                                                io.BytesIO(summary.encode()))
+
+      log(f, 'Upload Complete')
+      
+ 
+   except:
+      log(f, str(e))
+      print(str(e))
+
    f.close()
 
    return
@@ -274,14 +289,15 @@ def processFile(f, fileName):
    sizes = []
    buffers = []
    fileNames = []
-
+   summary_types = ['0', '11', '13', '14', '39', '48', '52']
+ 
    folder = "unknown"
 
    start_time = 0 
    stop_time = 0 
 
    processedFiles = []
-
+   
    input_zip = ZipFile(fileName, 'r')
    log(f, 'Processing (Zip) : ' + fileName)
     
@@ -298,29 +314,32 @@ def processFile(f, fileName):
       processedFiles.append(name)
 
       content = input_zip.read(name)
-      
-      parser = FamosParser(f)
-      parser.parse(content)
-      parser.summary()
+      parser = None
+      try:
+         parser = FamosParser(f)
+         parser.parse(content)
+         parser.summary()
+      except MemoryError:
+         log(f, 'out of memory exception')
 
       data = parser.getData()
 
       if len(data) > 0:
-         sizes.append(len(data))
-         matrix.append(data)
-         types.append(parser.getType())
-         titles.append(parser.getTitle())
-         buffers.append(parser.getBuffer())
          fileNames.append(name)
+         buffers.append(parser.getBuffer())
+ 
+         if (parser.getType() in summary_types and not parser.getTitle().startswith('Error')):
+            titles.append(parser.getTitle())
+            matrix.append(data)
+            types.append(parser.getType())
+            sizes.append(data.size)
 
          if (parser.getType() == '52'):
-            start_time = re.sub(r'\..*', '', data[0])
-            stop_time = re.sub(r'\..*', '', data[len(data) - 1])
+            start_time = re.sub(r'\..*', '', '%.7f' % data[0])
+            stop_time = re.sub(r'\..*', '', '%.7f' % data[len(data) - 1])
       
    minSize = min(sizes)
-   maxSize = max(sizes)
 
-   sampleSize = int(maxSize/minSize)
    csvfile = io.StringIO()
    famosWriter = csv.writer(csvfile, delimiter=',',
                                      quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -328,29 +347,23 @@ def processFile(f, fileName):
    famosWriter.writerow(titles)
 
    iRow = 0
-   iSample = 0
-
+   
    while iRow < minSize:
       iColumn = 0
       row = []
       while iColumn < len(matrix): 
-         if (sizes[iColumn] == minSize):
-            row.append(matrix[iColumn][iRow])
-         else:
-            row.append(matrix[iColumn][iSample])
-    
+         row.append('%.7f' % (matrix[iColumn][iRow]))
          iColumn += 1
 
       iRow += 1
-      iSample = iSample + sampleSize if (iSample + sampleSize) < minSize else iRow
-
+ 
       famosWriter.writerow(row)
 
    content = csvfile.getvalue()
 
    summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
-                          "files": processedFiles}, sort_keys=True)
+                          "files": processedFiles})
 
    try: 
       thread = threading.Thread(name='storefiles', target=storeFiles, args=(f, content, folder, fileNames, start_time, summary, buffers))
@@ -439,6 +452,8 @@ def retrieve():
 
    content = zlib.decompress(stream.getbuffer())
 
+   log(f, 'Retrieved - ' + name + '/' + timestamp)
+
    return content
 
 @views.route("/process", methods=["GET"])
@@ -463,7 +478,6 @@ def upload():
    fileContent = None
 
    for uploadFile in uploadedFiles:
-      fileName = uploadFile
       fileContent = request.files.get(uploadFile)
    
    output = []

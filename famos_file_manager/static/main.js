@@ -19,6 +19,17 @@ var folders = [];
 
 var selected = null;
 
+const BEARING_COLUMN = 0;
+const HEIGHT_COLUMN = 1;
+const LAT_COLUMN = 3
+const LONG_COLUMN = 4;
+const SPEED_COLUMN = 5;
+const TIME_COLUMN = 6;
+
+const X_AXIS = 7;
+const Y_AXIS = 8;
+const Z_AXIS = 9;
+
 /**
  * Distance between to points
  * 
@@ -244,8 +255,8 @@ function showMap(columns, rows) {
   var stopLatLng = null;
 
   for (row in rows) {
-      if (rows[row][6] && rows[row][7] && rows[row][6] != 0 && rows[row][7]) {
-          var latlng = [rows[row][6], rows[row][7]];
+      if (rows[row][LAT_COLUMN] && rows[row][LONG_COLUMN] && rows[row][LAT_COLUMN] != 0 && rows[row][LONG_COLUMN]) {
+          var latlng = [rows[row][LAT_COLUMN], rows[row][LONG_COLUMN]];
 
           if (startLatLng == null) {
               startLatLng = latlng;
@@ -345,28 +356,28 @@ function showCharts(columns, rows) {
 
   for (row in rows) {
 
-      if (rows[row][11] && rows[row][12] && rows[row][11] != 0 && rows[row][11] != 0) {
+      if (rows[row][SPEED_COLUMN] && rows[row][HEIGHT_COLUMN] && rows[row][SPEED_COLUMN] != 0 && rows[row][HEIGHT_COLUMN] != 0) {
 
           if (latlng) {             
              distanceKms += distance(latlng[0], latlng[1], 
-                  parseFloat(rows[row][6]),
-                  parseFloat(rows[row][7]));
+                  parseFloat(rows[row][LAT_COLUMN]),
+                  parseFloat(rows[row][LONG_COLUMN]));
              
            }
 
           if (!timestamp) {
-            timestamp = Math.trunc(rows[row][12]);
+            timestamp = Math.trunc(rows[row][TIME_COLUMN]);
           }
 
-          latlng = [parseFloat(rows[row][6]), parseFloat(rows[row][7])];
-          totalSpeed += parseFloat(rows[row][11]);
-          topSpeed = Math.max(parseFloat(rows[row][11]), topSpeed);
+          latlng = [parseFloat(rows[row][LAT_COLUMN]), parseFloat(rows[row][LONG_COLUMN])];
+          totalSpeed += parseFloat(rows[row][SPEED_COLUMN]);
+          topSpeed = Math.max(parseFloat(rows[row][SPEED_COLUMN]), topSpeed);
           count += 1;
 
-          if (row % modulus == 0 && rows[row][11] != 0 && rows[row][4] != 0) {
-             dataSpeed.push(rows[row][11]);
-             dataHeight.push(rows[row][4]);
-             var totalSeconds = Math.trunc(rows[row][12]) - timestamp;
+          if (row % modulus == 0 && rows[row][SPEED_COLUMN] != 0 && rows[row][HEIGHT_COLUMN] != 0) {
+             dataSpeed.push(rows[row][SPEED_COLUMN]);
+             dataHeight.push(rows[row][HEIGHT_COLUMN]);
+             var totalSeconds = Math.trunc(rows[row][TIME_COLUMN]) - timestamp;
              var hours = Math.floor(totalSeconds / 3600);
              totalSeconds %= 3600;
              var minutes = Math.floor(totalSeconds / 60);
@@ -423,8 +434,8 @@ function showCharts(columns, rows) {
 
     });
 
-    $('#details').html('<b>Start Time: </b><p/>' + (new Date(Math.trunc(rows[0][12]) * 1000)) +
-    '<p/><b>Finish Time: </b><p/>' + (new Date(Math.trunc(rows[count - 1][12]) * 1000)) +
+    $('#details').html('<b>Start Time: </b><p/>' + (new Date(Math.trunc(rows[0][TIME_COLUMN]) * 1000)) +
+    '<p/><b>Finish Time: </b><p/>' + (new Date(Math.trunc(rows[count - 1][TIME_COLUMN]) * 1000)) +
     '<p/><b>Average Speed: </b><p/>' + ((totalSpeed/rows.length).toFixed(2)) + "&nbsp;kph" +
     '<p/><b>Top Speed: </b><p/>' + (topSpeed.toFixed(2)) + "&nbsp;kph" +
     '<p/><b>Distance Travelled: </b><p/>' + ((distanceKms).toFixed(2)) + "&nbsp;kms");
@@ -541,22 +552,22 @@ function showGauges(columns, rows) {
         if (this.value < rows.length) {
             
             currentLatLng = {
-                latitude : rows[this.value][6],
-                longitude : rows[this.value][7]
+                latitude : rows[this.value][LAT_COLUMN],
+                longitude : rows[this.value][LONG_COLUMN]
             };
 
             var sample = rows.length >= 10000 ? 1000 : 10;
 
-            var totalSeconds = Math.trunc(rows[this.value][12]) - Math.trunc(rows[0][12]);
+            var totalSeconds = Math.trunc(rows[this.value][TIME_COLUMN]) - Math.trunc(rows[0][TIME_COLUMN]);
             var hours = Math.floor(totalSeconds / 3600);
             totalSeconds %= 3600;
             var minutes = Math.floor(totalSeconds / 60);
             seconds = totalSeconds % 60;
 
-            $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[this.value][12]) * 1000)) + "&nbsp;[" + 
+            $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[this.value][TIME_COLUMN]) * 1000)) + "&nbsp;[" + 
                     hours + ":" + minutes + ":" + seconds + "] - [Observation&nbsp;:&nbsp;" + this.value + "&nbsp;]");
-            speed = parseFloat(rows[this.value][11]);
-            bearing = Math.trunc(rows[this.value][1]);
+            speed = parseFloat(rows[this.value][SPEED_COLUMN]);
+            bearing = Math.trunc(rows[this.value][BEARING_COLUMN]);
 
             if (timerId == null) { 
                 timerId = setTimeout(function() {
@@ -587,13 +598,13 @@ function showGauges(columns, rows) {
  * @param {*} row the famos row to process
  */
 function showVehicleOrientation(row) {
-    var pitch = calculatePitch(row[14], row[15], row[16]);
+    var pitch = calculatePitch(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
     var contextPitch = $('#pitchView')[0].getContext('2d');
     
     showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100,);
     $('#pitchLabel').html('<b>Pitch:</b>&nbsp;' + ((pitch * 100).toFixed(3)) + '&deg;');
 
-    var roll = calculateRoll(row[14], row[15], row[16]);
+    var roll = calculateRoll(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
     var contextRoll = $('#rollView')[0].getContext('2d');
     
     showRotatedImage($('#rollView')[0], contextRoll, imageVehicleFront, roll * 100);
@@ -703,21 +714,21 @@ function generateSwiperEntry(html, name, timestamp) {
 
 function display(columns, rows) {
 
-  showMap(columns, rows);
+    showMap(columns, rows);
 
-  window.setTimeout(() => {
+    window.setTimeout(() => {
 
       inactivateTabs();
 
-      $('#display').css('display', 'inline-block');
-      $('#structureFrame').css('display', 'inline-block');
-      $('#tab1').css('text-decoration', 'underline');
-      $('#tab1').addClass('active');
+        $('#display').css('display', 'inline-block');
+        $('#structureFrame').css('display', 'inline-block');
+        $('#tab1').css('text-decoration', 'underline');
+        $('#tab1').addClass('active');
 
-      showCharts(columns, rows);
-      showGauges(columns, rows);
+        showCharts(columns, rows);
+        showGauges(columns, rows);
 
-      console.log('completed conversion');
+        console.log('completed conversion');
 
   }, 100);
 
@@ -733,9 +744,10 @@ function displayResults(results, callback) {
   for (var line in lines) {
 
     if (!columns) {
-         columns = lines[line];
+        columns = lines[line];
+        console.log(columns);
     } else {
-         rows.push(lines[line]);
+        rows.push(lines[line]);
     }
 
   }
@@ -755,7 +767,7 @@ function setupDisplay() {
     $.get('/list', parameters, function(data) {
         var html = "";
         var entries = JSON.parse(data)
-        var names =[];
+        var names = [];
 
         for (entry in entries) {
             html = generateSwiperEntry(html, entries[entry].folder, entries[entry].start_time);      
