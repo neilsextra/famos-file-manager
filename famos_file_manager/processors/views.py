@@ -121,10 +121,10 @@ class FamosParser:
                   r = struct.unpack("i", b''.join(v))[0] 
                   if (__self.__type in __self.__geoTypes):  
                      r = r/10000000
-                  __self.__data = numpy.append(__self.__data, r)
+   #               __self.__data = numpy.append(__self.__data, r)
                elif __self.__numberFormat == '7':
                   r = struct.unpack("f", b''.join(v))[0] 
-                  __self.__data = numpy.append(__self.__data, r)
+   #               __self.__data = numpy.append(__self.__data, r)
  
                __self.__count += 1   
 
@@ -137,10 +137,10 @@ class FamosParser:
 
                   if (__self.__title.startswith('Error')):
                      if (i % 2 == 0 or i == 0):
-                        __self.__data = numpy.append(__self.__data, r)
-                        __self.__count += 1 
+  #                      __self.__data = numpy.append(__self.__data, r)
+                         __self.__count += 1 
                   elif (i % __self.__interval == 0 or i == 0):       
-                     __self.__data = numpy.append(__self.__data, r)
+  #                   __self.__data = numpy.append(__self.__data, r)
                      __self.__count += 1 
  
                   i += 1               
@@ -363,7 +363,7 @@ def processFile(f, fileName):
    summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
                           "files": processedFiles})
-
+"""
    try: 
       thread = threading.Thread(name='storefiles', target=storeFiles, args=(f, content, folder, fileNames, start_time, summary, buffers))
       thread.setDaemon(True)
@@ -371,7 +371,7 @@ def processFile(f, fileName):
    except Exception as e:
       log(f, str(e))
       print(str(e))
-
+"""
    csvfile.close()
    input_zip.close()
    os.remove(fileName)
