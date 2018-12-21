@@ -146,7 +146,7 @@ class FamosParser:
                   i += 1               
                   p = 0
                   v = [] 
-            __self.log(__self.__count)
+            __self.log(str(__self.__count))
             v.append(b.to_bytes(1, byteorder='big')) 
             p = p + 1
 
@@ -466,7 +466,7 @@ def process():
       filename = request.args.get('file_name')
 
       return processFile(f, filename)
-      
+
    except Exception as e:
       log(f, str(e))
       f.close()
