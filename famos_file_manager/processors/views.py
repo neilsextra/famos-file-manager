@@ -363,6 +363,10 @@ def processFile(f, fileName):
    summary = json.dumps({"start": start_time, "stop": stop_time, 
                           "titles": titles, "types":types,
                           "files": processedFiles})
+   csvfile.close()
+   input_zip.close()
+   os.remove(fileName)
+   return content
 """
    try: 
       thread = threading.Thread(name='storefiles', target=storeFiles, args=(f, content, folder, fileNames, start_time, summary, buffers))
@@ -372,11 +376,7 @@ def processFile(f, fileName):
       log(f, str(e))
       print(str(e))
 """
-   csvfile.close()
-   input_zip.close()
-   os.remove(fileName)
-   
-   return content
+
 
 def log(f, message):
    f.write(str(datetime.datetime.now()))
