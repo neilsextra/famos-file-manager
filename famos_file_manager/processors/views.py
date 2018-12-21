@@ -274,7 +274,7 @@ def storeFiles(f, content, folder, fileNames, start_time, summary, buffers):
       log(f, 'Upload Complete')
       
  
-   except:
+   except Exception as e:
       log(f, str(e))
       print(str(e))
 
@@ -466,8 +466,9 @@ def process():
       filename = request.args.get('file_name')
 
       return processFile(f, filename)
-   except:
-      log(f, 'Error')
+      
+   except Exception as e:
+      log(f, str(e))
       f.close()
       return
   
