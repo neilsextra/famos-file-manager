@@ -539,7 +539,7 @@ function showGauges(columns, rows) {
     $("#range").attr('max', rows.length);
     $("#range").val(0);
 
-    $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[0][12]) * 1000)) + "&nbsp;[0:0:0]");
+    $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[0][TIME_COLUMN]) * 1000)) + "&nbsp;[0:0:0]");
 
     var slider = document.getElementById("range");
     bearingGauge.value = 0;
@@ -680,6 +680,7 @@ function createSwipperControl() {
   return swiper;
 
 }
+
 function generateSlide(name, timestamp) {
     var slide = 
     "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255,255,255, 0.30);' onclick='showMission(" +
@@ -977,35 +978,43 @@ $(document).ready(function() {
         $('#waitMessage').text('Chunking Data : ' + compressedData.length);
 
         sendData(folder, compressedData, maxChunks).then(function(result) {
-            $('#waitMessage').text('Processing Data : ' + compressedData.length);
 
             var parameters = {
-                file_name: result
+                file_name: result.file_name,
+                guid: result.guid,
+                folder: folder
             };
 
-            $.get('/process', parameters, function(data) {
+            $('#waitMessage').text('Committing Data : ' + compressedData.length);
+           
+            $.get('/commit', parameters, function(data) {
+                
+                $('#waitMessage').text('Processing Data : ' + compressedData.length);
+                $.get('/process', parameters, function(data) {
 
-                displayResults(data, function(columns, rows) {
-                    var slide = generateSlide(folder, Math.trunc(rows[0][12]));
+                    displayResults(data, function(columns, rows) {
+                        var slide = generateSlide(folder, Math.trunc(rows[0][TIME_COLUMN]));
 
-                    swiper.prependSlide([slide]);
+                        swiper.prependSlide([slide]);
 
-                    $('#' + selected).css('background-color', '');
-                    $('#' + folder + '-' + Math.trunc(rows[0][12])).css('background-color', 'orange');
-                    
-                    selected =  folder + '-' + Math.trunc(rows[0][12]);
-                                
-                    if ($.inArray($('#folder').text(), folders) === -1) {
-
-                        folders.push($('#folder').text());
+                        $('#' + selected).css('background-color', '');
+                        $('#' + folder + '-' + Math.trunc(rows[0][TIME_COLUMN])).css('background-color', 'orange');
                         
-                    }       
+                        selected =  folder + '-' + Math.trunc(rows[0][TIME_COLUMN]);
+                                    
+                        if ($.inArray($('#folder').text(), folders) === -1) {
 
-                    $('#waitMessage').text('');
-                    $('#waitDialog').css('display', 'none');  
-            
-                });  
-            
+                            folders.push($('#folder').text());
+                            
+                        }       
+
+                        $('#waitMessage').text('');
+                        $('#waitDialog').css('display', 'none');  
+                
+                    });  
+                
+                });
+
             });
 
         });
@@ -1015,13 +1024,15 @@ $(document).ready(function() {
     async function sendData(folder, compressedData, maxChunks) {
         var currentChunk = 0;
         var fileName = '';
+        var guid = '';
         
         for (var iChunk=0, len = compressedData.length; iChunk<len; iChunk += CHUNK_SIZE) {   
             var chunk = compressedData.slice(iChunk, iChunk + CHUNK_SIZE); 
-            var result = await postData(folder, chunk, currentChunk, maxChunks, fileName);
+            var result = await postData(folder, chunk, currentChunk, maxChunks, fileName, guid);
 
             if (fileName == '') {
                 fileName = JSON.parse(result)[0]['file_name'];
+                guid = JSON.parse(result)[0]['guid'];
             }
               
             console.log('Uploaded  - ' + currentChunk + "/" + maxChunks + ":" + JSON.parse(result)[0]['file_name']);
@@ -1030,13 +1041,16 @@ $(document).ready(function() {
 
         }
 
-        return fileName;
+        return {
+            file_name : fileName,
+            guid : guid
+        };
 
     }
    
-    function postData(folder, chunk, currentChunk, maxChunks, tempFileName) {    
+    function postData(folder, chunk, currentChunk, maxChunks, tempFileName, guid) {    
             var zipFile = null;
-            var fileName = `chunck_${currentChunk}_${maxChunks}.zip`
+            var fileName = `chunk_${currentChunk}_${maxChunks}.zip`
    
             try {
                 zipFile = new File([chunk], fileName);
@@ -1046,6 +1060,10 @@ $(document).ready(function() {
 
             var formData = new FormData();
             formData.append('file_name', tempFileName);
+            formData.append('folder', folder);
+            formData.append('guid', guid);
+            formData.append('chunk', currentChunk);
+
             formData.append(fileName, zipFile);
         
             return new Promise(resolve => {$.ajax({
