@@ -461,19 +461,18 @@ def commit():
                                     account_key=configuration['account_key'])
    
       service = account.create_block_blob_service()
- 
-      output = {
-         'status' : 'ok'
-      }
 
       blockslist = service.get_block_list(configuration['container_name'], blob_name, None, 'uncommitted')
       blocks = blockslist.uncommitted_blocks
       
-      for block in blocks:
-         log(f, 'Block ' + block.id)
-
       service.put_block_list(configuration['container_name'], blob_name, blocks)
-
+      
+      log(f, 'Committed: ' +  blob_name)
+ 
+      output = {
+         'status' : 'ok'
+      }
+ 
    except Exception as e:
       log(f, str(e))
       f.close()
