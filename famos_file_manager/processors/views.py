@@ -1,7 +1,6 @@
 from flask import Flask, Blueprint, render_template, request
 import binascii
 import ctypes
-import random
 import codecs
 import struct
 import sys
@@ -20,7 +19,6 @@ import os
 import tempfile
 import uuid
 import azure.storage.blob
-import random
 import string
 
 from struct import unpack, pack
@@ -129,7 +127,10 @@ class FamosParser:
          for b in values:     
             if (p == 4 and __self.__numberFormat in __self.__longFormats): 
                if __self.__numberFormat == '6':
-                  r = struct.unpack("i", b''.join(v))[0] 
+                  r = struct.unpack("i", b''.join([v[0].to_bytes(1, byteorder='big'),
+                                                   v[1].to_bytes(1, byteorder='big'),
+                                                   v[2].to_bytes(1, byteorder='big'),
+                                                   v[3].to_bytes(1, byteorder='big')]))[0] 
                   if (__self.__type in __self.__geoTypes):  
                      r = r/10000000
                   
@@ -145,12 +146,12 @@ class FamosParser:
 
             elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
                if (counter % __self.__sample == 0 or counter == 0):   
-                  r = struct.unpack(">h",  b''.join(v))[0] 
+                  r = struct.unpack(">h",  b''.join([v[0].to_bytes(1, byteorder='big'),
+                                                     v[1].to_bytes(1, byteorder='big')]))[0] 
                   r = r/100000
 
-                  if (__self.__sample != 200):
-                     __self.__data.append(r)
-                     __self.__count += 1 
+                  __self.__data.append(r)
+                  __self.__count += 1 
 
                p = 0    
                
@@ -159,7 +160,7 @@ class FamosParser:
                return
 
             counter += 1
-            v[p] = b.to_bytes(1, byteorder='big') 
+            v[p] = b
             p += 1
 
       else:
@@ -283,8 +284,26 @@ def store(f, configuration, file_name, guid):
       if (name.endswith('.raw')):
          processed_files.append(name)
 
+         if (name.startswith('GPS.course_variation_BUSDAQ')):
+            continue
+
+         if (name.startswith('GPS.hdop_BUSDAQ')):
+            continue
+
+         if (name.startswith('GPS.pdop_BUSDAQ')):
+            continue
+            
+         if (name.startswith('GPS.quality_BUSDAQ')):
+            continue
+
+         if (name.startswith('GPS.satellites_BUSDAQ')):
+            continue
+            
+         if (name.startswith('GPS.vdop_BUSDAQ')):
+            continue
+
          parser = FamosParser(f)
-         
+      
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
             parser.setSample(200)
  
