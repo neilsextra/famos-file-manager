@@ -280,7 +280,8 @@ def store(f, configuration, file_name, guid):
          parser = FamosParser(f)
          
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
-             parser.setSample(200)
+         #    parser.setSample(200)
+         continue
 
          if (name in 'Error_Frames_1.raw'):                
             parser.setSample(4)
