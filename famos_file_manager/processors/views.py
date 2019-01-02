@@ -281,7 +281,7 @@ def store(f, configuration, file_name, guid):
          
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
          #    parser.setSample(200)
-         continue
+            continue
 
          if (name in 'Error_Frames_1.raw'):                
             parser.setSample(4)
