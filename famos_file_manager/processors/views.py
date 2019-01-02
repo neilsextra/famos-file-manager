@@ -149,7 +149,9 @@ class FamosParser:
 
             elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
                if (counter % __self.__sample == 0 or counter == 0):   
-                  __self.log('Adding' + counter)
+
+                  if (counter % 100):
+                     __self.log('Counter: ' + str(counter))
  
                   r = struct.unpack(">h",  b''.join([v[0].to_bytes(1, byteorder='big'),
                                                      v[1].to_bytes(1, byteorder='big')]))[0] 
