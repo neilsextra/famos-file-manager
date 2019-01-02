@@ -33,10 +33,10 @@ const Z_AXIS = 9;
 /**
  * Distance between to points
  * 
- * @param {Float} lat1 the From Latitude
- * @param {Float} lon1 the From Longitude
- * @param {Float} lat2 the To Latitude
- * @param {Float} lon2 the To Longitude
+ * @param {float} lat1 the From Latitude
+ * @param {float} lon1 the From Longitude
+ * @param {float} lat2 the To Latitude
+ * @param {float} lon2 the To Longitude
  */
 function distance(lat1, lon1, lat2, lon2) {
 	var radlat1 = Math.PI * lat1/180;
@@ -107,9 +107,9 @@ function getLatLngCenter(latLngInDegr) {
 
  /**
   * Calculate vehicle pitch
-  * @param {Float} x 
-  * @param {Float} y 
-  * @param {Float} z 
+  * @param {float} x 
+  * @param {float} y 
+  * @param {float} z 
   */
  function calculatePitch(x,y,z) {
     
@@ -120,11 +120,11 @@ function getLatLngCenter(latLngInDegr) {
  /**
   * Calculate vehicle roll
   * 
-  * @param {Float} x 
-  * @param {Float} y 
-  * @param {Float} z 
+  * @param {float} x 
+  * @param {float} y 
+  * @param {float} z 
   */
- function calculateRoll(x,y,z) {
+ function calculateRoll(x, y, z) {
     
     return Math.atan2(y, Math.sqrt(x^2+z^2));
  
@@ -133,8 +133,8 @@ function getLatLngCenter(latLngInDegr) {
  /**
   * Clear the Canvas
   * 
-  * @param {String} containerID the container
-  * @param {String} canvasID the canvas to clear
+  * @param {string} containerID the container
+  * @param {string} canvasID the canvas to clear
   */
  function clearCanvas(parentID, canvasID) {
     $('#' + canvasID).remove(); 
@@ -195,9 +195,10 @@ function showRotatedImage(canvas, context, image, angleInDegrees) {
 /**
 * Show the Active Tab
 * 
-* @param {*} evt the Tab to Show
-* @param {*} tab the name of the Tab
-* @param {*} button the Tab's button
+* @param {event} evt the Tab to Show
+* @param {string} tab the name of the Tab
+* @param {string} button the Tab's button
+
 */
 function showTab(evt, tab, button) {
 
@@ -237,8 +238,11 @@ function buildMenu(folders) {
   
 /**
 * Show the Map
+
 * @param {*} columns the columns in the data
 * @param {*} rows the data rows
+
+
 */
 function showMap(columns, rows) {
   
@@ -566,14 +570,14 @@ function showGauges(columns, rows) {
 
             $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[this.value][TIME_COLUMN]) * 1000)) + "&nbsp;[" + 
                     hours + ":" + minutes + ":" + seconds + "] - [Observation&nbsp;:&nbsp;" + this.value + "&nbsp;]");
+
             speed = parseFloat(rows[this.value][SPEED_COLUMN]);
             bearing = Math.trunc(rows[this.value][BEARING_COLUMN]);
 
             if (timerId == null) { 
                 timerId = setTimeout(function() {
                     speedGauge.value = speed;
-                    console.log('Bearing: ' + bearing);
-
+ 
                     bearingGauge.value = bearing;
 
                     bearingGauge.draw();
@@ -594,21 +598,33 @@ function showGauges(columns, rows) {
 }
 
 /**
- * The row to process
- * @param {*} row the famos row to process
+ * The row to process - X,Y,Z readings
+ * 
+ * @param {integer} row the famos row to process
+ * 
  */
 function showVehicleOrientation(row) {
     var pitch = calculatePitch(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
     var contextPitch = $('#pitchView')[0].getContext('2d');
     
-    showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100,);
-    $('#pitchLabel').html('<b>Pitch:</b>&nbsp;' + ((pitch * 100).toFixed(3)) + '&deg;');
+    if (isNaN(pitch)) {
+        $('#pitch').css('display', 'none');
+    } else {
+        $('#pitch').css('display', 'inline-block');
+        showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100,);
+        $('#pitchLabel').html('<b>Pitch:</b>&nbsp;' + ((pitch * 100).toFixed(3)) + '&deg;');
+    }
 
     var roll = calculateRoll(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
     var contextRoll = $('#rollView')[0].getContext('2d');
     
-    showRotatedImage($('#rollView')[0], contextRoll, imageVehicleFront, roll * 100);
-    $('#rollLabel').html('<b>Roll:</b>&nbsp;' + ((roll * 100).toFixed(3)) + '&deg;');
+    if (isNaN(roll)) {
+        $('#roll').css('display', 'none');
+    } else {    
+        $('#roll').css('display', 'inline-block');
+        showRotatedImage($('#rollView')[0], contextRoll, imageVehicleFront, roll * 100);
+        $('#rollLabel').html('<b>Roll:</b>&nbsp;' + ((roll * 100).toFixed(3)) + '&deg;');
+    }
 
 }
 
@@ -727,6 +743,7 @@ function display(columns, rows) {
         $('#tab1').addClass('active');
 
         showCharts(columns, rows);
+        
         showGauges(columns, rows);
 
         console.log('completed conversion');

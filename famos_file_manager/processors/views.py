@@ -127,21 +127,14 @@ class FamosParser:
          for b in values:     
             if (p == 4 and __self.__numberFormat in __self.__longFormats): 
                if __self.__numberFormat == '6':
-                  r = struct.unpack("i", b''.join([v[0].to_bytes(1, byteorder='big'),
-                                                   v[1].to_bytes(1, byteorder='big'),
-                                                   v[2].to_bytes(1, byteorder='big'),
-                                                   v[3].to_bytes(1, byteorder='big')]))[0] 
+                  r = struct.unpack("i", b''.join(v))[0]
                   if (__self.__type in __self.__geoTypes):  
                      r = r/10000000
                   
                   __self.__data.append(r)
  
                elif __self.__numberFormat == '7':
-                  r = struct.unpack("f", b''.join([v[0].to_bytes(1, byteorder='big'),
-                                    v[1].to_bytes(1, byteorder='big'),
-                                    v[2].to_bytes(1, byteorder='big'),
-                                    v[3].to_bytes(1, byteorder='big')]))[0] 
-    
+                  r = struct.unpack("f", b''.join(v))[0] 
                   __self.__data.append(r)
                 
                __self.__count += 1   
@@ -149,12 +142,7 @@ class FamosParser:
 
             elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
                if (counter % __self.__sample == 0 or counter == 0):   
-
-                  if (counter % 100):
-                     __self.log('Counter: ' + str(counter))
- 
-                  r = struct.unpack(">h",  b''.join([v[0].to_bytes(1, byteorder='big'),
-                                                     v[1].to_bytes(1, byteorder='big')]))[0] 
+                  r = struct.unpack(">h",  b''.join(v))[0] 
                   r = r/100000
                   
                   __self.__data.append(r)
@@ -167,7 +155,7 @@ class FamosParser:
                return
 
             counter += 1
-            v[p] = b
+            v[p] = b.to_bytes(1, byteorder='big') 
             p += 1
 
       else:
@@ -235,6 +223,7 @@ def getConfiguration():
       debug_file = config.DEBUG_FILE
       staging_dir = config.STAGING_DIR
       zip_file_name = config.ZIP_FILE_NAME
+      threshold = config.THRESHOLD
 
    except ImportError:
       pass
@@ -255,6 +244,7 @@ def getConfiguration():
    debug_file = environ.get('DEBUG_FILE', debug_file)
    staging_dir = environ.get('STAGING_DIR', staging_dir)
    zip_file_name = environ.get('ZIP_FILE_NAME', zip_file_name)
+   threshold = environ.get('THRESHOLD', threshold)
 
    return {
       "account_key": account_key,
@@ -264,7 +254,8 @@ def getConfiguration():
       'save_files': save_files,
       'socket_timeout': socket_timeout,
       'debug_file': debug_file,
-      'staging_dir': staging_dir
+      'staging_dir': staging_dir,
+      'threshold' : threshold
    }   
 
 def store(f, configuration, file_name, guid):
@@ -278,7 +269,15 @@ def store(f, configuration, file_name, guid):
    folder = 'unknown'
    timestamp = 'unknown'
    summary_types = ['0', '11', '13', '14', '39', '48', '52']
-   
+
+   ignore = ['Error_Frames_1', 
+             'GPS.course_variation_BUSDAQ', 'GPS.hdop_BUSDAQ', 'GPS.quality_BUSDAQ', 'GPS.satellites_BUSDAQ', 'GPS.vdop_BUSDAQ']
+
+   evaluate = [
+     'X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw' ]       
+
+   record_count = -1
+
    titles = []
    types = []
    matrix = []
@@ -288,36 +287,25 @@ def store(f, configuration, file_name, guid):
    for name in input_zip.namelist():     
   
       if (name.endswith('.raw')):
+         if (name.startswith(tuple(ignore))):
+            log(f, 'Ignoring: ' + name)
+            continue
+
+         if (name.startswith(tuple(evaluate)) and (record_count == -1 or record_count >= int(configuration['threshold']))):
+            log(f, 'Ignoring: ' + name)
+            continue
+
          processed_files.append(name)
-         
-         if (name in 'Error_Frames_1.raw'):                
-            continue
- 
-         if (name.startswith('GPS.course_variation_BUSDAQ')):
-            continue
-
-         if (name.startswith('GPS.hdop_BUSDAQ')):
-            continue
-
-         if (name.startswith('GPS.pdop_BUSDAQ')):
-            continue
-            
-         if (name.startswith('GPS.quality_BUSDAQ')):
-            continue
-
-         if (name.startswith('GPS.satellites_BUSDAQ')):
-            continue
-            
-         if (name.startswith('GPS.vdop_BUSDAQ')):
-            continue
-
          parser = FamosParser(f)
 
          log(f, 'Processing: ' + name)
   
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
             parser.setSample(200)
- 
+         
+         if (name in 'Error_Frames_1.raw'):                
+            parser.setSample(4)
+
          content = input_zip.read(name)
          parser.parse(content)
          parser.summary()
@@ -332,13 +320,14 @@ def store(f, configuration, file_name, guid):
          
          if (parser.getType() == '52'):
             timestamp = re.sub(r'\..*', '', '%.7f' % data[0])
+            record_count = len(data)
          
-         if (parser.getType() in summary_types and not parser.getTitle().startswith('Error')):
+         if (parser.getType() in summary_types):
             matrix.append(data)
             types.append(parser.getType())
             sizes.append(len(data))          
    
-   log(f, 'Compiling File : ' + file_name)
+   log(f, 'Compiling : ' + file_name)
 
    minSize = min(sizes)
 

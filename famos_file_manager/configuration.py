@@ -6,3 +6,4 @@ SOCKET_TIMEOUT = 100000
 DEBUG_FILE = 'debug.log'
 STAGING_DIR = 'staging'
 ZIP_FILE_NAME = 'famos_logs.zip'
+THRESHOLD = 10000
