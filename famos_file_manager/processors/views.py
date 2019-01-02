@@ -147,8 +147,10 @@ class FamosParser:
                if (counter % __self.__sample == 0 or counter == 0):   
                   r = struct.unpack(">h",  b''.join(v))[0] 
                   r = r/100000
-                  __self.__data.append(r)
-                  __self.__count += 1 
+
+                  if (__self.__sample != 200):
+                     __self.__data.append(r)
+                     __self.__count += 1 
 
                p = 0    
                
