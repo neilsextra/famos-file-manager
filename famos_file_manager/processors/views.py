@@ -117,7 +117,13 @@ class FamosParser:
         
          __self.__count = 0  
          p = 0
-         v = [] 
+         v = []
+
+         if (__self.__numberFormat in __self.__longFormats):
+            v = [b'0', b'0', b'0', b'0']
+         else:
+            v = [b'0', b'0'] 
+
          counter = 0 
 
          for b in values:     
@@ -136,7 +142,6 @@ class FamosParser:
                __self.__count += 1   
 
                p = 0
-               v = [] 
 
             elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
                if (counter % __self.__sample == 0 or counter == 0):   
@@ -145,16 +150,15 @@ class FamosParser:
                   __self.__data.append(r)
                   __self.__count += 1 
 
-               p = 0
-               v = [] 
+               p = 0    
                
             if (__self.__limit != -1 and len(__self.__data) >= __self.__limit):
                print('Count reached: ' + __self.__type + " - " + id.decode('utf-8') + ":" + str(__self.__limit) + ":" +  str(len(__self.__data)))
                return
 
             counter += 1
-            v.append(b.to_bytes(1, byteorder='big')) 
-            p = p + 1
+            v[p] = b.to_bytes(1, byteorder='big') 
+            p += 1
 
       else:
          if (re.match(b"[^ \t].*$", content, re.DOTALL)):
@@ -280,9 +284,8 @@ def store(f, configuration, file_name, guid):
          parser = FamosParser(f)
          
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
-         #    parser.setSample(200)
-            continue
-
+            parser.setSample(200)
+ 
          if (name in 'Error_Frames_1.raw'):                
             parser.setSample(4)
 
