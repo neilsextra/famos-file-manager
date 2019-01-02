@@ -137,7 +137,11 @@ class FamosParser:
                   __self.__data.append(r)
  
                elif __self.__numberFormat == '7':
-                  r = struct.unpack("f", b''.join(v))[0] 
+                  r = struct.unpack("f", b''.join([v[0].to_bytes(1, byteorder='big'),
+                                    v[1].to_bytes(1, byteorder='big'),
+                                    v[2].to_bytes(1, byteorder='big'),
+                                    v[3].to_bytes(1, byteorder='big')]))[0] 
+    
                   __self.__data.append(r)
                 
                __self.__count += 1   
@@ -283,7 +287,10 @@ def store(f, configuration, file_name, guid):
 
       if (name.endswith('.raw')):
          processed_files.append(name)
-
+         
+         if (name in 'Error_Frames_1.raw'):                
+            continue
+ 
          if (name.startswith('GPS.course_variation_BUSDAQ')):
             continue
 
@@ -307,9 +314,6 @@ def store(f, configuration, file_name, guid):
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
             parser.setSample(200)
  
-         if (name in 'Error_Frames_1.raw'):                
-            parser.setSample(4)
-
          content = input_zip.read(name)
          parser.parse(content)
          parser.summary()
