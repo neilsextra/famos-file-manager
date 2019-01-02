@@ -145,22 +145,23 @@ class FamosParser:
                   __self.__data.append(r)
                 
                __self.__count += 1   
-
                p = 0
 
             elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
                if (counter % __self.__sample == 0 or counter == 0):   
+                  __self.log('Adding' + counter)
+ 
                   r = struct.unpack(">h",  b''.join([v[0].to_bytes(1, byteorder='big'),
                                                      v[1].to_bytes(1, byteorder='big')]))[0] 
                   r = r/100000
-
+                  
                   __self.__data.append(r)
                   __self.__count += 1 
 
                p = 0    
                
             if (__self.__limit != -1 and len(__self.__data) >= __self.__limit):
-               print('Count reached: ' + __self.__type + " - " + id.decode('utf-8') + ":" + str(__self.__limit) + ":" +  str(len(__self.__data)))
+               __self.log('Count reached: ' + __self.__type + " - " + id.decode('utf-8') + ":" + str(__self.__limit) + ":" +  str(len(__self.__data)))
                return
 
             counter += 1
@@ -283,8 +284,7 @@ def store(f, configuration, file_name, guid):
    processed_files = []
 
    for name in input_zip.namelist():     
-      log(f, 'Processing: ' + name)
-
+  
       if (name.endswith('.raw')):
          processed_files.append(name)
          
@@ -310,7 +310,9 @@ def store(f, configuration, file_name, guid):
             continue
 
          parser = FamosParser(f)
-      
+
+         log(f, 'Processing: ' + name)
+  
          if (name in ['X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw']):
             parser.setSample(200)
  
