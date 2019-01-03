@@ -30,6 +30,7 @@ views = Blueprint('views', __name__, template_folder='templates')
 class FamosParser:
    def __init__(__self, file):
      __self.__data = []
+     __self.stream = None
      __self.__regex = re.compile(b"\|(CF|CK|CG|NO|CD|NT|CC|CR|CN|CP|CS|Cb),(.*)", re.DOTALL)
      __self.__dataX = re.compile(b"([0-9]?)\,\s*([0-9]*?),\s*([0-9]*?),(.*)", re.DOTALL)
      __self.__shortFormats = ['4']
@@ -43,24 +44,38 @@ class FamosParser:
      __self.__offset = 0  
      __self.__directSeqNo = 0  
      __self.__intervalBytes = 0
-     __self.__interval = 100
+     __self.__buffer_size = 4096
      __self.__title = '' 
      __self.__type = None 
      __self.__count = 0  
      __self.__limit = -1
      __self.__sample = 1
+     __self.__eof = False
      __self.file = file 
    
    def log(__self, message):
+      __self.file.write(str(datetime.datetime.now()))
+      __self.file.write(' : ')
+      __self.file.write(message)
+      __self.file.write('\n')
+      __self.file.flush()
 
-       __self.file.write(str(datetime.datetime.now()))
-       __self.file.write(' : ')
-       __self.file.write(message)
-       __self.file.write('\n')
-       __self.file.flush()
+   def read(__self):
+
+      if (__self.__eof):
+         return None
+
+      buffer = __self.__stream.read(__self.__buffer_size)
+      __self.log('Read: ' + str(len(__self.__data)) + ':' + str(len(buffer)))
+      
+      __self.__eof = len(buffer) != __self.__buffer_size
+
+      if (__self.__eof):
+         __self.__stream.close()
+
+      return buffer
 
    def process(__self, data):
-
       packed = __self.__regex.match(data)
 
       if packed == None:
@@ -124,39 +139,48 @@ class FamosParser:
 
          counter = 0 
 
-         for b in values:     
-            if (p == 4 and __self.__numberFormat in __self.__longFormats): 
-               if __self.__numberFormat == '6':
-                  r = struct.unpack("i", b''.join(v))[0]
-                  if (__self.__type in __self.__geoTypes):  
-                     r = r/10000000
+         while True:
+            for b in values:     
+               if (p == 4 and __self.__numberFormat in __self.__longFormats): 
+                  if __self.__numberFormat == '6':
+                     r = struct.unpack("i", b''.join(v))[0]
+                     if (__self.__type in __self.__geoTypes):  
+                        r = r/10000000
+                     
+                     __self.__data.append(r)
+   
+                  elif __self.__numberFormat == '7':
+                     r = struct.unpack("f", b''.join(v))[0] 
+                     __self.__data.append(r)
                   
-                  __self.__data.append(r)
- 
-               elif __self.__numberFormat == '7':
-                  r = struct.unpack("f", b''.join(v))[0] 
-                  __self.__data.append(r)
-                
-               __self.__count += 1   
-               p = 0
+                  __self.__count += 1   
+                  p = 0
 
-            elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
-               if (counter % __self.__sample == 0 or counter == 0):   
-                  r = struct.unpack(">h",  b''.join(v))[0] 
-                  r = r/100000
+               elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
+                  if (counter % __self.__sample == 0 or counter == 0):   
+                     r = struct.unpack(">h",  b''.join(v))[0] 
+                     r = r/100000
+                     
+                     __self.__data.append(r)
+                     __self.__count += 1 
+
+                  p = 0    
                   
-                  __self.__data.append(r)
-                  __self.__count += 1 
+               if (__self.__limit != -1 and len(__self.__data) >= __self.__limit):
+                  __self.log('Count reached: ' + __self.__type + " - " + id.decode('utf-8') + ":" + str(__self.__limit) + ":" +  str(len(__self.__data)))
+                  return
 
-               p = 0    
-               
-            if (__self.__limit != -1 and len(__self.__data) >= __self.__limit):
-               __self.log('Count reached: ' + __self.__type + " - " + id.decode('utf-8') + ":" + str(__self.__limit) + ":" +  str(len(__self.__data)))
-               return
+               counter += 1
+               v[p] = b.to_bytes(1, byteorder='big') 
+               p += 1
+         
+            del values
 
-            counter += 1
-            v[p] = b.to_bytes(1, byteorder='big') 
-            p += 1
+            if (__self.__eof):
+               __self.log('End condition met') 
+               break
+
+            values = bytearray(__self.read())
 
       else:
          if (re.match(b"[^ \t].*$", content, re.DOTALL)):
@@ -166,9 +190,12 @@ class FamosParser:
          process = re.search(b"(.*?);(.*)", content, re.DOTALL)
          __self.process(process.group(2))  
   
-   def parse(__self, content):
-     __self.__buffer = content
-     __self.process(__self.__buffer)
+   def parse(__self, stream):
+      __self.__stream = stream
+      __self.__buffer = __self.read()
+      __self.log('Commencing Parsing')
+      __self.process(__self.__buffer)
+
 
    def summary(__self):
       __self.log('Title: ' + __self.__title +  ' [' + __self.__type + ']')
@@ -198,9 +225,6 @@ class FamosParser:
    def getCount(__self):
      return __self.__count
 
-   def getBuffer(__self):
-     return __self.__buffer
-
 def getConfiguration():    
    account_key = None
    account_name = None
@@ -210,7 +234,6 @@ def getConfiguration():
    socket_timeout = None
    debug_file = None
    zip_file_name = None
-
 
    try:
       import famos_file_manager.configuration as config
@@ -273,11 +296,6 @@ def store(f, configuration, file_name, guid):
    ignore = ['Error_Frames_1', 
              'GPS.course_variation_BUSDAQ', 'GPS.hdop_BUSDAQ', 'GPS.quality_BUSDAQ', 'GPS.satellites_BUSDAQ', 'GPS.vdop_BUSDAQ']
 
-   evaluate = [
-     'X Axis Acceleration.raw', 'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw' ]       
-
-   record_count = -1
-
    titles = []
    types = []
    matrix = []
@@ -288,10 +306,6 @@ def store(f, configuration, file_name, guid):
   
       if (name.endswith('.raw')):
          if (name.startswith(tuple(ignore))):
-            log(f, 'Ignoring: ' + name)
-            continue
-
-         if (name.startswith(tuple(evaluate)) and (record_count == -1 or record_count >= int(configuration['threshold']))):
             log(f, 'Ignoring: ' + name)
             continue
 
@@ -306,8 +320,8 @@ def store(f, configuration, file_name, guid):
          if (name in 'Error_Frames_1.raw'):                
             parser.setSample(4)
 
-         content = input_zip.read(name)
-         parser.parse(content)
+         stream = input_zip.open(name)
+         parser.parse(stream)
          parser.summary()
 
          titles.append(parser.getTitle())
@@ -330,7 +344,6 @@ def store(f, configuration, file_name, guid):
    log(f, 'Compiling : ' + file_name)
 
    minSize = min(sizes)
-
    csvfile = io.StringIO()
    famosWriter = csv.writer(csvfile, delimiter=',',
                                      quotechar='"', quoting=csv.QUOTE_MINIMAL)
