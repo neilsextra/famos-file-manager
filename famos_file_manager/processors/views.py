@@ -68,7 +68,7 @@ class FamosParser:
 
       buffer = __self.__stream.read(__self.__buffer_size)
 
-      if (__self.__buffer_counter % 100 == 0 or __self.__buffer_counter == 0):
+      if (__self.__buffer_counter % 10 == 0 or __self.__buffer_counter == 0):
          __self.log('Read: ' + str(len(__self.__data)) + ':' + str(len(buffer)))
 
       __self.__buffer_counter += 1
@@ -583,25 +583,25 @@ def upload():
    buffer = fileContent.read()
 
    if (temp_file_name == ''):
-      with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-            temp_file_name = tmpfile.name
-    
-            log(f, 'Temp File Allocated allocated - ' + temp_file_name)
+   #   with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+         temp_file_name = "D:\\home\\LogFiles\\famos.zip"
+   
+         log(f, 'Temp File Allocated allocated - ' + temp_file_name)
 
-            with open(temp_file_name, 'ab') as temp:
+         with open(temp_file_name, 'ab') as temp:
 
-               temp.write(buffer)
-               temp.close()
+            temp.write(buffer)
+            temp.close()
 
-            guid = str(uuid.uuid4())
-            log(f, 'UUID allocated - ' + guid)
+         guid = str(uuid.uuid4())
+         log(f, 'UUID allocated - ' + guid)
 
-            blob_name = folder + '/' + guid + ".zip"
-            log(f, 'blob_name - ' + blob_name)
+         blob_name = folder + '/' + guid + ".zip"
+         log(f, 'blob_name - ' + blob_name)
 
-            service.create_container(configuration['container_name']) 
-        
-            log(f, "Created Container - [" +  (configuration['container_name']) + "] - " + blob_name)
+         service.create_container(configuration['container_name']) 
+      
+         log(f, "Created Container - [" +  (configuration['container_name']) + "] - " + blob_name)
             
    else:
       with open(temp_file_name, 'ab') as temp:
