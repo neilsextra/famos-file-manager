@@ -1008,28 +1008,10 @@ $(document).ready(function() {
                 
                 $('#waitMessage').text('Processing Data : ' + compressedData.length);
                 $.get('/process', parameters, function(data) {
+                   
+                    $('#waitMessage').text('');
+                    $('#waitDialog').css('display', 'none');  
 
-                    displayResults(data, function(columns, rows) {
-                        var slide = generateSlide(folder, Math.trunc(rows[0][TIME_COLUMN]));
-
-                        swiper.prependSlide([slide]);
-
-                        $('#' + selected).css('background-color', '');
-                        $('#' + folder + '-' + Math.trunc(rows[0][TIME_COLUMN])).css('background-color', 'orange');
-                        
-                        selected =  folder + '-' + Math.trunc(rows[0][TIME_COLUMN]);
-                                    
-                        if ($.inArray($('#folder').text(), folders) === -1) {
-
-                            folders.push($('#folder').text());
-                            
-                        }       
-
-                        $('#waitMessage').text('');
-                        $('#waitDialog').css('display', 'none');  
-                
-                    });  
-                
                 });
 
             });

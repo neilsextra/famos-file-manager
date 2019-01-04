@@ -20,6 +20,7 @@ import tempfile
 import uuid
 import azure.storage.blob
 import string
+import multiprocessing as mp
 
 from struct import unpack, pack
 from azure.storage.common import CloudStorageAccount
@@ -68,7 +69,7 @@ class FamosParser:
 
       buffer = __self.__stream.read(__self.__buffer_size)
 
-      if (__self.__buffer_counter % 10 == 0 or __self.__buffer_counter == 0):
+      if (__self.__buffer_counter % 100 == 0 or __self.__buffer_counter == 0):
          __self.log('Read: ' + str(len(__self.__data)) + ':' + str(len(buffer)))
 
       __self.__buffer_counter += 1
@@ -290,7 +291,10 @@ def getConfiguration():
       'threshold' : threshold
    }   
 
-def store(f, configuration, file_name, guid):
+def store(file_name, guid):
+   configuration = getConfiguration()
+
+   f = open(configuration['debug_file'], 'a')
    log(f, 'Account Name: ' + configuration['account_name'])
    log(f, 'Container Name: ' + configuration['container_name'])
    
@@ -533,15 +537,15 @@ def process():
    
    try:
       configuration = getConfiguration()
-      
       f = open(configuration['debug_file'], 'a')
-   
+       
       file_name = request.args.get('file_name')
       guid = request.args.get('guid')
 
-      result = store(f, configuration, file_name, guid)
+      p = mp.Process(target=store, args=(file_name, guid))
+      p.start()
 
-      return result
+      return "OK"
 
    except Exception as e:
       log(f, str(e))
@@ -583,9 +587,9 @@ def upload():
    buffer = fileContent.read()
 
    if (temp_file_name == ''):
-   #   with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-         temp_file_name = "D:\\home\\LogFiles\\famos.zip"
-   
+      with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+         temp_file_name = tmpfile.name
+
          log(f, 'Temp File Allocated allocated - ' + temp_file_name)
 
          with open(temp_file_name, 'ab') as temp:
