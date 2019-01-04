@@ -697,25 +697,26 @@ function createSwipperControl() {
 
 }
 
-function generateSlide(name, timestamp) {
+function generateSummarySlide(folder, timestamp) {
     var slide = 
     "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255,255,255, 0.30);' onclick='showMission(" +
-    "\"" + name + "\",\"" + timestamp + "\");'> " + 
+    "\"" + folder + "\",\"" + timestamp + "\");'> " + 
         "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
         "<div class='play'>" + 
         "<img src='" + playImage + "' style='width:32; height:32px; margin-top:100px;'/></div>" +
         "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
-        "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" + (new Date(Math.trunc(timestamp) * 1000)) +
+        "<tr><td><label style='color:black;font-family: monospace; font-size: 14px; font-weight:bold'>" +
+         (new Date(Math.trunc(timestamp) * 1000)) +
          "</label></td>" +  
         "</tr>" + 
         "</table>" +
         "</div>" +
         "<div style='position:absolute; left:3px; bottom:8px; right:3px; margin-bottom:-5px;'>" + 
             " <label style='color:black;font-family: monospace; font-size: 14px; width:100%; " + 
-        " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
-        name + "</label>" +
-        "<div id='" + name + '-' + timestamp + 
-        "' style='position:absolute: left:0px; right:0px; bottom:0px; height:5px; margin-bottom:-4px; margin-left:-3px; margin-right:-3px;'><p></p></div>" +
+            " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
+            folder + "</label>" +
+            "<div id='" + folder + '-' + timestamp + 
+            "' style='position:absolute: left:0px; right:0px; bottom:0px; height:5px; margin-bottom:-4px; margin-left:-3px; margin-right:-3px;'><p></p></div>" +
         "</div>" +
     "</div>";
 
@@ -723,9 +724,34 @@ function generateSlide(name, timestamp) {
 
 }
 
-function generateSwiperEntry(html, name, timestamp) {
-  
-    return html + generateSlide(name, timestamp);
+
+function generateStatusSlide(folder, timestamp) {
+    var slide = 
+    "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255, 0, 0, 0.60);'> " + 
+        "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
+        "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
+        "<tr><td><label style='color:white; font-family: monospace; font-size: 14px; font-weight:bold'>" + 
+        (new Date(Math.trunc(timestamp) * 1000)) +
+         "</label></td>" +  
+        "</tr>" + 
+        "</table>" +
+        "</div>" +
+        "<div style='position:absolute; left:3px; bottom:-10px; right:3px; margin-bottom:-5px;'>" + 
+            " <label style='color:white; font-family: monospace; font-size: 14px; width:100%; " + 
+            " white-space: nowrap; overflow: hidden;text-overflow: ellipsis; display: inline-block;'>" +
+            folder + "</label>" +
+            "<div" + 
+            "' style='position:absolute: left:0px; right:0px; bottom:0px; height:5px; margin-bottom:-4px; margin-left:-3px; margin-right:-3px;'><p></p></div>" +
+        "</div>" +
+    "</div>";
+
+    return slide;
+
+}
+function generateSwiperEntry(html, folder, filename, timestamp) {
+
+    return html + (filename.startsWith('status') ? generateStatusSlide(folder, timestamp) 
+                                                 : generateSummarySlide(folder, timestamp));
 
 }
 
@@ -788,7 +814,7 @@ function setupDisplay() {
         var names = [];
 
         for (entry in entries) {
-            html = generateSwiperEntry(html, entries[entry].folder, entries[entry].start_time);      
+            html = generateSwiperEntry(html, entries[entry].folder, entries[entry].file_name, entries[entry].timestamp);      
             names.push(entries[entry].folder); 
         }
 
@@ -824,7 +850,7 @@ function refreshView(callback) {
         var entries = JSON.parse(data)
         
         for (entry in entries) {
-            html = generateSwiperEntry(html, entries[entry].vehicle, entries[entry].start_time);
+            html = generateSwiperEntry(html, entries[entry].folder, entries[entry].file_name, entries[entry].timestamp);
             names.push(entries[entry].folder); 
         }       
     
@@ -1007,10 +1033,13 @@ $(document).ready(function() {
             $.get('/commit', parameters, function(data) {
                 
                 $('#waitMessage').text('Processing Data : ' + compressedData.length);
+                
                 $.get('/process', parameters, function(data) {
                    
-                    $('#waitMessage').text('');
-                    $('#waitDialog').css('display', 'none');  
+                    refreshView(function() {
+                        $('#waitMessage').text('');
+                        $('#waitDialog').css('display', 'none');
+                    }); 
 
                 });
 

@@ -21,6 +21,7 @@ import uuid
 import azure.storage.blob
 import string
 import multiprocessing as mp
+import gc
 
 from struct import unpack, pack
 from azure.storage.common import CloudStorageAccount
@@ -291,7 +292,7 @@ def getConfiguration():
       'threshold' : threshold
    }   
 
-def store(file_name, guid):
+def store(file_name, folder, timestamp, guid):
    configuration = getConfiguration()
 
    f = open(configuration['debug_file'], 'a')
@@ -300,14 +301,11 @@ def store(file_name, guid):
    
    input_zip = ZipFile(file_name, 'r')
 
-   log(f, 'Processing (Zip) : ' + file_name)
-
-   folder = 'unknown'
-   timestamp = 'unknown'
-   summary_types = ['0', '11', '13', '14', '39', '48', '52']
+   log(f, 'Processing (Zip) : ' + file_name + ' - ' + folder + ' - ' + timestamp)
 
    ignore = ['Error_Frames_1', 
-             'GPS.course_variation_BUSDAQ', 'GPS.hdop_BUSDAQ', 'GPS.quality_BUSDAQ', 'GPS.satellites_BUSDAQ', 'GPS.vdop_BUSDAQ']
+             'GPS.course_variation_BUSDAQ', 'GPS.hdop_BUSDAQ', 'GPS.quality_BUSDAQ', 
+             'GPS.pdop_BUSDAQ', 'GPS.satellites_BUSDAQ', 'GPS.vdop_BUSDAQ']
 
    titles = []
    types = []
@@ -340,20 +338,11 @@ def store(file_name, guid):
          titles.append(parser.getTitle())
          types.append(parser.getType())
          data = parser.getData()
- 
-         if (name.startswith('GPS.time.sec_BUSDAQ')):
-            parts = re.search("_([0-9]*)?(\.raw)", name, re.DOTALL)
-            folder = parts.group(1)
-         
-         if (parser.getType() == '52'):
-            timestamp = re.sub(r'\..*', '', '%.7f' % data[0])
-            record_count = len(data)
-         
-         if (parser.getType() in summary_types):
-            matrix.append(data)
-            types.append(parser.getType())
-            sizes.append(len(data))          
-   
+
+         matrix.append(data)
+         types.append(parser.getType())
+         sizes.append(len(data))          
+
    log(f, 'Compiling : ' + file_name)
 
    minSize = min(sizes)
@@ -380,9 +369,11 @@ def store(file_name, guid):
 
    log(f, 'File Compiled : ' + file_name)
 
-   summary = json.dumps({"timestamp": timestamp, 
+   summary = json.dumps({ "folder": folder,
+                          "timestamp": timestamp, 
                           "titles": titles, 
                           "types": types,
+                          "sizes": sizes,
                           "files": processed_files,
                           "logs": guid + ".zip"})
 
@@ -410,9 +401,55 @@ def store(file_name, guid):
                                                   
    log(f, 'Stored: ' + file_name)
 
+   service.delete_blob(configuration['container_name'], folder + '/' + timestamp + '/status.json')
+
    os.remove(file_name)
 
-   return content
+   return
+
+def initiate(f, file_name, guid):
+   configuration = getConfiguration()
+
+   f = open(configuration['debug_file'], 'a')
+   log(f, 'Account Name: ' + configuration['account_name'])
+   log(f, 'Container Name: ' + configuration['container_name'])
+   
+   input_zip = ZipFile(file_name, 'r')
+
+   log(f, 'Initiating (Zip) : ' + file_name)
+   
+   folder = ''
+   timestamp = ''
+   
+   for name in input_zip.namelist():     
+  
+      if (name.startswith('GPS.time.sec_BUSDAQ')):
+         stream = input_zip.open(name)
+         parser = FamosParser(f)
+         parser.setLimit(1)
+
+         # Parsing File 
+         parser.parse(stream)
+         parser.summary()
+         data = parser.getData()
+         parts = re.search("_([0-9]*)?(\.raw)", name, re.DOTALL)
+         folder = parts.group(1)
+         timestamp = re.sub(r'\..*', '', '%.7f' % data[0])
+     
+   summary = {"folder": folder,
+              "timestamp": timestamp, 
+              "logs": guid + ".zip"}
+
+   account = CloudStorageAccount(account_name=configuration['account_name'], 
+                              account_key=configuration['account_key'])
+
+   service = account.create_block_blob_service()
+   service.create_blob_from_stream(configuration['container_name'],  folder + '/' + timestamp + '/status.json',
+                                 io.BytesIO(json.dumps(summary).encode()))
+
+   log(f, 'Initiated (Zip) : ' + file_name + ' - ' + folder + '/' + timestamp)
+
+   return summary
 
 def log(f, message):
    f.write(str(datetime.datetime.now()))
@@ -446,12 +483,15 @@ def list():
       blobs = service.list_blobs(configuration['container_name'])
 
       for blob in blobs:
-         if (re.match("(.*)\/(.*)\/(summary\.json)$", blob.name,  re.DOTALL)):
-            data = re.search("(.*)\/(.*)\/(summary\.json)$", blob.name, re.DOTALL)
+         if (re.match("(.*)\/(.*)\/([s][u|t].*\.json)", blob.name,  re.DOTALL)):
+
+            data = re.search("(.*)\/(.*)\/([s][u|t].*\.json)", blob.name, re.DOTALL)
+
             output.append({
                "summary_file": blob.name,
                "folder": data.group(1),
-               "start_time": data.group(2)
+               "timestamp": data.group(2),
+               "file_name": data.group(3)
             })
       
       f.close()
@@ -542,10 +582,14 @@ def process():
       file_name = request.args.get('file_name')
       guid = request.args.get('guid')
 
-      p = mp.Process(target=store, args=(file_name, guid))
+      summary = initiate(f, file_name, guid)
+
+      log(f, 'Submitted (Zip) for processing: ' + file_name + ' - ' + summary['folder'] + ' - ' + summary['timestamp']) 
+
+      p = mp.Process(target=store, args=(file_name, summary['folder'], summary['timestamp'], guid))
       p.start()
 
-      return "OK"
+      return json.dumps(summary).encode()
 
    except Exception as e:
       log(f, str(e))
