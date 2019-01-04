@@ -48,6 +48,7 @@ class FamosParser:
      __self.__title = '' 
      __self.__type = None 
      __self.__count = 0  
+     __self.__buffer_counter = 0  
      __self.__limit = -1
      __self.__sample = 1
      __self.__eof = False
@@ -66,8 +67,11 @@ class FamosParser:
          return None
 
       buffer = __self.__stream.read(__self.__buffer_size)
-      __self.log('Read: ' + str(len(__self.__data)) + ':' + str(len(buffer)))
-      
+
+      if (__self.__buffer_counter % 100 == 0 or __self.__buffer_counter == 0):
+         __self.log('Read: ' + str(len(__self.__data)) + ':' + str(len(buffer)))
+
+      __self.__buffer_counter += 1
       __self.__eof = len(buffer) != __self.__buffer_size
 
       if (__self.__eof):
@@ -139,6 +143,7 @@ class FamosParser:
 
          counter = 0 
 
+         buffer = None
          while True:
             for b in values:     
                if (p == 4 and __self.__numberFormat in __self.__longFormats): 
@@ -176,11 +181,15 @@ class FamosParser:
          
             del values
 
+            if (buffer != None):
+               del buffer
+
             if (__self.__eof):
                __self.log('End condition met') 
                break
-
-            values = bytearray(__self.read())
+               
+            buffer = __self.read()
+            values = bytearray(buffer)
 
       else:
          if (re.match(b"[^ \t].*$", content, re.DOTALL)):
