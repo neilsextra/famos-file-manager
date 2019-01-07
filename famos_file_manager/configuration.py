@@ -5,5 +5,5 @@ SAVE_FILES = 'true'
 SOCKET_TIMEOUT = 100000
 DEBUG_FILE = 'debug.log'
 STAGING_DIR = 'C:\\Temp'
-ZIP_FILE_NAME = 'famos_logs.zip'
+ZIP_FILE_NAME = 'famos-logs.zip'
 THRESHOLD = 10000

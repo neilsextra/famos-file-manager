@@ -137,12 +137,19 @@ function getLatLngCenter(latLngInDegr) {
   * @param {string} canvasID the canvas to clear
   */
  function clearCanvas(parentID, canvasID) {
-    $('#' + canvasID).remove(); 
-    $(parentID).append('<canvas id= "'+ canvasID + 
-            '" width="400" height="110" style="position:absolute; left:0px; right:0px; top:0px; bottom:20px;" />');
-
+    $(`#${canvasID}`).remove(); 
+    $(parentID).append(`<canvas id='${canvasID}' width="400" height="110" style="position:absolute; left:0px; right:0px; top:0px; bottom:20px;" />`);
  }
 
+ /**
+  * Rotate the image by the specified amount in degrees
+  * 
+  * @param {object} canvas 
+  * @param {object} context 
+  * @param {object} image 
+  * @param {float} angleInDegrees 
+  * 
+  */
 function showRotatedImage(canvas, context, image, angleInDegrees) {
     var angleInRadians = angleInDegrees * (Math.PI/180)
     var x = canvas.width / 2;
@@ -198,7 +205,6 @@ function showRotatedImage(canvas, context, image, angleInDegrees) {
 * @param {event} evt the Tab to Show
 * @param {string} tab the name of the Tab
 * @param {string} button the Tab's button
-
 */
 function showTab(evt, tab, button) {
 

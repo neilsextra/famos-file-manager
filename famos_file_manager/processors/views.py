@@ -289,10 +289,12 @@ def getConfiguration():
       'socket_timeout': socket_timeout,
       'debug_file': debug_file,
       'staging_dir': staging_dir,
-      'threshold' : threshold
+      'threshold' : threshold,
+      'zip_file_name' : zip_file_name
+      
    }   
 
-def store(file_name, folder, timestamp, guid):
+def store(file_name, folder, timestamp, guid, zip_file_name):
    configuration = getConfiguration()
 
    f = open(configuration['debug_file'], 'a')
@@ -375,7 +377,7 @@ def store(file_name, folder, timestamp, guid):
                           "types": types,
                           "sizes": sizes,
                           "files": processed_files,
-                          "logs": guid + ".zip"})
+                          "logs": zip_file_name})
 
    csvfile.close()
    input_zip.close()
@@ -404,6 +406,8 @@ def store(file_name, folder, timestamp, guid):
    service.delete_blob(configuration['container_name'], folder + '/' + timestamp + '/status.json')
 
    os.remove(file_name)
+
+   log(f, 'Completed (Zip) : ' + file_name + ' - ' + folder + ' - ' + timestamp)
 
    return
 
@@ -584,9 +588,25 @@ def process():
 
       summary = initiate(f, file_name, guid)
 
+      account = CloudStorageAccount(account_name=configuration['account_name'], 
+                                    account_key=configuration['account_key'])
+      service = account.create_block_blob_service()
+
+      blob_name = summary['folder'] + '/' + guid + ".zip"  
+      target_blob_name = summary['folder'] + '/' + summary['timestamp'] +  '/' + configuration['zip_file_name']  
+      
+      log(f, 'Renaming blob : ' + target_blob_name) 
+
+      blob_url = service.make_blob_url(configuration['container_name'], blob_name)
+      service.copy_blob(configuration['container_name'], target_blob_name, blob_url)
+      
+      log(f, 'Deleting temporary blob : ' + blob_name) 
+
+      service.delete_blob(configuration['container_name'], blob_name)
+
       log(f, 'Submitted (Zip) for processing: ' + file_name + ' - ' + summary['folder'] + ' - ' + summary['timestamp']) 
 
-      p = mp.Process(target=store, args=(file_name, summary['folder'], summary['timestamp'], guid))
+      p = mp.Process(target=store, args=(file_name, summary['folder'], summary['timestamp'], guid, target_blob_name))
       p.start()
 
       return json.dumps(summary).encode()
