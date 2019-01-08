@@ -4,6 +4,9 @@
  */
 var slidesPerView = 6;
 var CHUNK_SIZE = 10000;
+var FAMOS_FILES = ['Error_Frames_1.raw', 'X Axis Acceleration.raw',
+            'Y Axis Acceleration.raw', 'Z Axis Acceleration.raw'];
+var FILE_COUNT = 17;
 
 /**
  * Globals
@@ -996,7 +999,6 @@ $(document).ready(function() {
     });  
 
     function processFiles(files) {
-
         $('#waitDialog').css('display', 'inline-block');
  
         var zip = JSZip();
@@ -1004,8 +1006,28 @@ $(document).ready(function() {
         
        $('#waitMessage').text('Creating Zip Archive');
 
-        for (var iFile = 0; iFile < files.length; iFile++) {             
+        var fileCount = FILE_COUNT;
+
+        for (var iFile = 0; iFile < files.length; iFile++) {   
             var f = files[iFile];
+
+            // Some Filename testing
+
+            if (!f.name.endsWith('.raw')) {
+                continue;
+            }
+
+            if (f.name.startsWith('GPS.')) {
+                fileCount -= 1;
+            }
+            
+
+            if (FAMOS_FILES.indexOf(f.name) >= 0) {
+                fileCount -= 1;
+            }
+
+            // Add File to Zip Archive
+
             zip.file(f.name, f);
    
             if (f.name.startsWith('GPS.time.sec_BUSDAQ')) {
@@ -1014,6 +1036,12 @@ $(document).ready(function() {
             }
                
         }
+
+        if (fileCount != 0) {
+            alert(`Not all files uploaded - ${fileCount}`);
+            return;
+        }
+
         zip.generateAsync({type: "uint8array"}).then(function (data) {
             $('#waitMessage').text('All Files Zipped');
             chunkData(folder, data);
