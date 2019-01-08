@@ -423,7 +423,7 @@ def initiate(f, file_name, guid):
    log(f, 'Initiating (Zip) : ' + file_name)
    
    folder = ''
-   timestamp = ''
+   timestamp = '0'
    
    for name in input_zip.namelist():     
   
@@ -438,8 +438,19 @@ def initiate(f, file_name, guid):
          data = parser.getData()
          parts = re.search("_([0-9]*)?(\.raw)", name, re.DOTALL)
          folder = parts.group(1)
-         timestamp = re.sub(r'\..*', '', '%.7f' % data[0])
-     
+
+         iObs = 0
+
+         while iObs < len(data):
+            
+            if (data[iObs] > 0):
+               timestamp = re.sub(r'\..*', '', '%.7f' % data[iObs])
+               break
+
+            iObs += 1
+            
+         log(f, 'Found Timestamp: ' + timestamp)
+
    summary = {"folder": folder,
               "timestamp": timestamp, 
               "logs": guid + ".zip"}
