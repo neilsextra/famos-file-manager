@@ -54,14 +54,24 @@ class FamosParser:
      __self.__limit = -1
      __self.__sample = 1
      __self.__eof = False
-     __self.file = file 
+     __self.__file = file 
+     __self.__ignore_zero = False
    
    def log(__self, message):
-      __self.file.write(str(datetime.datetime.now()))
-      __self.file.write(' : ')
-      __self.file.write(message)
-      __self.file.write('\n')
-      __self.file.flush()
+      __self.__file.write(str(datetime.datetime.now()))
+      __self.__file.write(' : ')
+      __self.__file.write(message)
+      __self.__file.write('\n')
+      __self.__file.flush()
+
+   def append(__self, v):
+
+      if (__self.__ignore_zero and (v == 0)):
+         return 0
+      
+      __self.__data.append(v)
+
+      return 1
 
    def read(__self):
 
@@ -152,15 +162,14 @@ class FamosParser:
                   if __self.__numberFormat == '6':
                      r = struct.unpack("i", b''.join(v))[0]
                      if (__self.__type in __self.__geoTypes):  
-                        r = r/10000000
+                        r = r/10000000      
                      
-                     __self.__data.append(r)
+                     __self.__count += __self.append(r)
    
                   elif __self.__numberFormat == '7':
                      r = struct.unpack("f", b''.join(v))[0] 
-                     __self.__data.append(r)
+                     __self.__count += __self.append(r)
                   
-                  __self.__count += 1   
                   p = 0
 
                elif (p == 2 and __self.__numberFormat in __self.__shortFormats):
@@ -168,9 +177,8 @@ class FamosParser:
                      r = struct.unpack(">h",  b''.join(v))[0] 
                      r = r/100000
                      
-                     __self.__data.append(r)
-                     __self.__count += 1 
-
+                     __self.__count += __self.append(r)
+ 
                   p = 0    
                   
                if (__self.__limit != -1 and len(__self.__data) >= __self.__limit):
@@ -220,6 +228,9 @@ class FamosParser:
 
    def setLimit(__self, limit):
       __self.__limit = limit
+
+   def setIgnoreZero(__self, ignore_zero):
+      __self.__ignore_zero = ignore_zero
 
    def setSample(__self, sample):
       __self.__sample = sample
@@ -430,6 +441,7 @@ def initiate(f, file_name, guid):
       if (name.startswith('GPS.time.sec_BUSDAQ')):
          stream = input_zip.open(name)
          parser = FamosParser(f)
+         parser.setIgnoreZero(True)
          parser.setLimit(1)
 
          # Parsing File 
@@ -442,7 +454,7 @@ def initiate(f, file_name, guid):
          iObs = 0
 
          while iObs < len(data):
-            
+            log(f, 'Obs: ' + str(iObs) + ' - ' + str(data[iObs]))
             if (data[iObs] > 0):
                timestamp = re.sub(r'\..*', '', '%.7f' % data[iObs])
                break
