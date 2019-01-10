@@ -566,6 +566,11 @@ function showGauges(columns, rows) {
  */
 function showVehicleOrientation(row) {
     var pitch = calculatePitch(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
+  
+    if (isNaN(pitch)) {
+        return;  
+    }
+
     var contextPitch = $('#pitchView')[0].getContext('2d');
     
    showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100);
@@ -586,6 +591,11 @@ function showVehicleOrientation(row) {
  * 
  */
 function showSteeringOrientation(position) {
+
+    if (isNaN(position)) {
+        return;  
+    }
+
     var contextSteering = $('#steeringView')[0].getContext('2d');
         
     showRotatedImage($('#steeringView')[0], contextSteering, imageVehicleSteering, position == 0 ? position : 360 - position);
