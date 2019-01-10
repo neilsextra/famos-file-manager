@@ -505,7 +505,7 @@ function showGauges(columns, rows) {
         minValue: 0,
         maxValue: 360,
         majorTicks: [
-            'N','NE','E','SE','S','SW','W','NW','N'
+            '0','45','90','135','180','225','270','315','0'
         ],
         minorTicks: 22,
         colorPlate: '#222',
@@ -736,7 +736,7 @@ function generateSummarySlide(folder, timestamp) {
 
 function generateStatusSlide(folder, timestamp) {
     var slide = 
-    "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(255, 0, 0, 0.60);'> " + 
+    "<div class='swiper-slide' style='border:2px solid #0174DF; background-color: rgba(100, 100, 100, 0.60);'> " + 
         "<div style='position:absolute; left:3px; top:5px; right:3px;'>" +
         "<table style='color:black;font-family: monospace; font-size: 12px;'>" +
         "<tr><td><label style='color:white; font-family: monospace; font-size: 14px; font-weight:bold'>" + 
