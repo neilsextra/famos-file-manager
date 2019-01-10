@@ -17,6 +17,7 @@ var csvFile = null;
 var currentLatLng = null;
 var imageVehicleSide = null;
 var imageVehicleFront= null;
+var imageVehicleSteering = null;
 var swiper = null;
 var folders = [];
 
@@ -494,60 +495,13 @@ function showGauges(columns, rows) {
         animationDuration: 100
     }).draw();
 
-    var bearingGauge = new RadialGauge({
-        dataMinValue:0,
-        dataMaxValue:360,
-        renderTo: 'bearingGauge',
-        width: 200,
-        height: 200,
-        title: false,
-        value: 0,
-        minValue: 0,
-        maxValue: 360,
-        majorTicks: [
-            '0','45','90','135','180','225','270','315','0'
-        ],
-        minorTicks: 22,
-        colorPlate: '#222',
-        colorMajorTicks: '#f5f5f5',
-        colorMinorTicks: '#ddd',
-        ticksAngle: 360,
-        startAngle: 180,
-        highlights: false,
-        colorPlate: '#222',
-        colorMajorTicks: '#f5f5f5',
-        colorMinorTicks: '#ddd',
-        colorNumbers: '#ccc',
-        colorNeedle: 'rgba(240, 128, 128, 1)',
-        colorNeedleEnd: 'rgba(255, 160, 122, .9)',
-        valueBox: false,
-        valueTextShadow: false,
-        colorCircleInner: "#fff",
-        colorNeedleCircleOuter: "#ccc",
-        needleCircleSize: 15,
-        needleCircleOuter: false,
-        needleType:'line',
-        needleStart:75,
-        needleEnd: 99,
-        needleWidth: 5,
-        borders: true,
-        borderInnerWidth: 0,
-        borderMiddleWidth: 0,
-        borderOuterWidth: 10,
-        colorBorderOuter: '#ccc',
-        colorBorderOuterEnd: '#ccc',
-        colorNeedleShadowDown: '#222',
-        borderShadowWidth: 0,
-        animationRule:"linear",
-        animationDuration:100
-    }).draw();
-
     speedGauge.value = 0;
-    bearingGauge.value = 0;
-
+    
+    
     var context = $('#pitchView')[0].getContext('2d');
     
     showVehicleOrientation(rows[0]);
+    showSteeringOrientation(parseFloat(rows[0][BEARING_COLUMN]));
 
     $("#range").attr('max', rows.length);
     $("#range").val(0);
@@ -555,7 +509,7 @@ function showGauges(columns, rows) {
     $('#sliderPos').html("<b>Time:</b>&nbsp;" + (new Date(Math.trunc(rows[0][TIME_COLUMN]) * 1000)) + "&nbsp;[0:0:0]");
 
     var slider = document.getElementById("range");
-    bearingGauge.value = 0;
+
     let timerId = null;
     var speed = 0;
     var bearing = 0;
@@ -581,15 +535,12 @@ function showGauges(columns, rows) {
                     hours + ":" + minutes + ":" + seconds + "] - [Observation&nbsp;:&nbsp;" + this.value + "&nbsp;]");
 
             speed = parseFloat(rows[this.value][SPEED_COLUMN]);
-            bearing = Math.trunc(rows[this.value][BEARING_COLUMN]);
+            bearing = parseFloat(rows[this.value][BEARING_COLUMN]);
 
             if (timerId == null) { 
                 timerId = setTimeout(function() {
                     speedGauge.value = speed;
  
-                    bearingGauge.value = bearing;
-
-                    bearingGauge.draw();
                     speedGauge.draw();
                     
                     timerId = null;
@@ -599,6 +550,7 @@ function showGauges(columns, rows) {
             }
 
             showVehicleOrientation(rows[this.value]);
+            showSteeringOrientation(bearing);
 
         }
 
@@ -616,24 +568,28 @@ function showVehicleOrientation(row) {
     var pitch = calculatePitch(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
     var contextPitch = $('#pitchView')[0].getContext('2d');
     
-    if (isNaN(pitch)) {
-        $('#pitch').css('display', 'none');
-    } else {
-        $('#pitch').css('display', 'inline-block');
-        showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100,);
-        $('#pitchLabel').html('<b>Pitch:</b>&nbsp;' + ((pitch * 100).toFixed(3)) + '&deg;');
-    }
+   showRotatedImage($('#pitchView')[0], contextPitch, imageVehicleSide, pitch * 100);
+    $('#pitchLabel').html('<b>Pitch:</b>&nbsp;' + ((pitch * 100).toFixed(3)) + '&deg;');
 
     var roll = calculateRoll(row[X_AXIS], row[Y_AXIS], row[Z_AXIS]);
     var contextRoll = $('#rollView')[0].getContext('2d');
     
-    if (isNaN(roll)) {
-        $('#roll').css('display', 'none');
-    } else {    
-        $('#roll').css('display', 'inline-block');
-        showRotatedImage($('#rollView')[0], contextRoll, imageVehicleFront, roll * 100);
-        $('#rollLabel').html('<b>Roll:</b>&nbsp;' + ((roll * 100).toFixed(3)) + '&deg;');
-    }
+     showRotatedImage($('#rollView')[0], contextRoll, imageVehicleFront, roll * 100);
+    $('#rollLabel').html('<b>Roll:</b>&nbsp;' + ((roll * 100).toFixed(3)) + '&deg;');
+
+}
+
+/**
+ * The steering position 
+ * 
+ * @param {integer} integer the steering position
+ * 
+ */
+function showSteeringOrientation(position) {
+    var contextSteering = $('#steeringView')[0].getContext('2d');
+        
+    showRotatedImage($('#steeringView')[0], contextSteering, imageVehicleSteering, position == 0 ? position : 360 - position);
+    $('#steeringLabel').html('<b>Position:</b>&nbsp;' + (position.toFixed(3)) + '&deg;');
 
 }
 
@@ -936,6 +892,9 @@ $(document).ready(function() {
 
     imageVehicleFront = new Image();
     imageVehicleFront.src = imageVehicleFrontURL;
+ 
+    imageVehicleSteering = new Image();
+    imageVehicleSteering.src = imageVehicleSteeringURL;
  
     $('#folders').bind('click', (e) => {
 
