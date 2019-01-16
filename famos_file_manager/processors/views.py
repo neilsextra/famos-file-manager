@@ -494,9 +494,11 @@ def list():
    configuration = getConfiguration()
    
    f = open(configuration['debug_file'], 'a')
-
+   
+   folder = request.args.get('folder')
+   
    try:
-      log(f, 'Listing Files - request received')
+      log(f, 'Listing Files - request received - [' + folder + ']')
 
       account = CloudStorageAccount(account_name=configuration['account_name'], 
                                     account_key=configuration['account_key'])
@@ -514,12 +516,14 @@ def list():
 
             data = re.search("(.*)\/(.*)\/([s][u|t].*\.json)", blob.name, re.DOTALL)
 
-            output.append({
-               "summary_file": blob.name,
-               "folder": data.group(1),
-               "timestamp": data.group(2),
-               "file_name": data.group(3)
-            })
+
+            if (folder == '' or folder == data.group(1)):
+               output.append({
+                  "summary_file": blob.name,
+                  "folder": data.group(1),
+                  "timestamp": data.group(2),
+                  "file_name": data.group(3)
+               })
       
       f.close()
 

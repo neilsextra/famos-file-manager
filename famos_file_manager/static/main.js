@@ -723,6 +723,7 @@ function generateStatusSlide(folder, timestamp) {
     return slide;
 
 }
+
 function generateSwiperEntry(html, folder, filename, timestamp) {
 
     return html + (filename.startsWith('status') ? generateStatusSlide(folder, timestamp) 
@@ -780,8 +781,10 @@ function displayResults(results, callback) {
 function setupDisplay() {
 
     $('#waitDialog').css('display', 'inline-block');
-
-    var parameters = {};
+ 
+    var parameters = {
+            folder : $('#folder').text() 
+    };
 
     $.get('/list', parameters, function(data) {
         var html = "";
@@ -815,7 +818,10 @@ function setupDisplay() {
 }
 
 function refreshView(callback) {
-    var parameters = {};
+    var parameters = {    
+        folder : $('#folder').text()
+    }
+
     var names =[];
     
     $('#waitDialog').css('display', 'inline-block');
@@ -833,7 +839,6 @@ function refreshView(callback) {
         
         swiper.update();
 
-        folders = [];
         $.each(names, function(i, el){
             if($.inArray(el, folders) === -1) {
                 folders.push(el);
@@ -876,11 +881,19 @@ $.fn.Clear = () => {
 
     $('#folder').text('');
 
+    refreshView(function() {
+
+    });
+
 }
 
 $.fn.Select = (folder, index) => {
 
     $('#folder').text(folder);
+
+    refreshView(function() {
+
+    });
   
 }
 
